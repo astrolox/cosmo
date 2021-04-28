@@ -51,6 +51,7 @@ public interface ContentDao extends ItemDao {
      * @param children children to updated
      * @return updated collection
      */
+    @ExternalizableContent
     public CollectionItem updateCollection(CollectionItem collection,
             Set<ContentItem> children);
 
@@ -75,6 +76,7 @@ public interface ContentDao extends ItemDao {
      *            content to create
      * @return newly created content
      */
+    @ExternalizableContent
     public ContentItem createContent(CollectionItem parent, ContentItem content);
     
     /**
@@ -87,6 +89,7 @@ public interface ContentDao extends ItemDao {
      * @param contents
      *           the set of contents to create
      */
+    @ExternalizableContent
     public void createBatchContent(CollectionItem parent, Set<ContentItem> contents);
     
     /**
@@ -100,6 +103,7 @@ public interface ContentDao extends ItemDao {
      * @param parent CollectionItem
      * @param contents Set<ContentItem>
      */
+    @ExternalizableContent
     public void removeBatchContent(CollectionItem parent, Set<ContentItem> contents);    
     /**
      * Create new content item and associate with multiple parent collections.

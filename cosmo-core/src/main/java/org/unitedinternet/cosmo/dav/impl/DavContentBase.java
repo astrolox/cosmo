@@ -21,8 +21,7 @@ import java.util.Set;
 
 import javax.xml.namespace.QName;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.jackrabbit.webdav.DavResource;
 import org.apache.jackrabbit.webdav.DavResourceIterator;
 import org.apache.jackrabbit.webdav.DavResourceIteratorImpl;
 import org.apache.jackrabbit.webdav.io.InputContext;
@@ -59,8 +58,7 @@ import org.unitedinternet.cosmo.model.User;
  */
 public abstract class DavContentBase extends DavItemResourceBase
     implements DavItemContent {
-    @SuppressWarnings("unused")
-    private static final Log LOG = LogFactory.getLog(DavContentBase.class);
+    
     private static final Set<String> DEAD_PROPERTY_FILTER =
         new HashSet<String>();
 
@@ -101,7 +99,7 @@ public abstract class DavContentBase extends DavItemResourceBase
         // MultiStatus tries to add a MultiStatusResponse for every member
         // of a WebDavResource regardless of whether or not it's a collection,
         // so we need to return an empty iterator.
-        return new DavResourceIteratorImpl(new ArrayList());
+        return new DavResourceIteratorImpl(new ArrayList<DavResource>());
     }
 
     public void removeMember(org.apache.jackrabbit.webdav.DavResource member)

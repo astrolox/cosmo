@@ -17,14 +17,14 @@ package org.unitedinternet.cosmo.calendar.query;
 
 import java.text.ParseException;
 
-import net.fortuna.ical4j.model.DateTime;
-import net.fortuna.ical4j.model.Period;
-import net.fortuna.ical4j.model.component.VTimeZone;
-
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.jackrabbit.webdav.xml.DomUtil;
 import org.unitedinternet.cosmo.dav.caldav.CaldavConstants;
 import org.w3c.dom.Element;
+
+import net.fortuna.ical4j.model.DateTime;
+import net.fortuna.ical4j.model.Period;
+import net.fortuna.ical4j.model.component.VTimeZone;
 
 /**
  * Represents the CALDAV:time-range element. From sec 9.8:
@@ -45,7 +45,9 @@ import org.w3c.dom.Element;
  * end value: an iCalendar "date with UTC time"
  */
 public class TimeRangeFilter implements CaldavConstants {
-
+    
+    private static final Long TWO_YEARS_MILLIS = new Long(63072000000L);
+    
     private Period period = null;
 
     private VTimeZone timezone = null;
@@ -65,14 +67,14 @@ public class TimeRangeFilter implements CaldavConstants {
      * @param element The DOM Element.
      * @throws ParseException - if something is wrong this exception is thrown.
      */
-    public TimeRangeFilter(Element element, VTimeZone timezone) throws ParseException {
+    public TimeRangeFilter(Element element, VTimeZone timezone) throws ParseException {        
         // Get start (must be present)
         String start =
             DomUtil.getAttribute(element, ATTR_CALDAV_START, null);
         if (start == null) {
             throw new ParseException("CALDAV:comp-filter time-range requires a start time", -1);
         }
-
+        
         DateTime trstart = new DateTime(start);
         if (! trstart.isUtc()) {
             throw new ParseException("CALDAV:param-filter timerange start must be UTC", -1);
@@ -80,14 +82,9 @@ public class TimeRangeFilter implements CaldavConstants {
 
         // Get end (must be present)
         String end =
-            DomUtil.getAttribute(element, ATTR_CALDAV_END, null);
-        if (end == null) {
-            //add one year to date start Iphone ios7 bug
-            end = addOneYearToDateStart(start);
-            //throw new ParseException("CALDAV:comp-filter time-range requires an end time", -1); 
-        }
-
-        DateTime trend = new DateTime(end);
+            DomUtil.getAttribute(element, ATTR_CALDAV_END, null);        
+        DateTime trend = end != null ? new DateTime(end) : getDefaultEndDate(trstart);
+        
         if (! trend.isUtc()) {
             throw new ParseException("CALDAV:param-filter timerange end must be UTC", -1);
         }
@@ -96,12 +93,17 @@ public class TimeRangeFilter implements CaldavConstants {
         setTimezone(timezone);
     }
 
-    private String addOneYearToDateStart(String start) {
-        String year = start.substring(0, 4);
-        
-        return Integer.parseInt(year) + 1 + start.substring(4);
+    /**
+     * Calculates a default end date relative to specified start date.
+     * 
+     * @param startDate
+     * @return
+     */
+    private DateTime getDefaultEndDate(DateTime startDate) {
+        DateTime endDate = new DateTime(startDate.getTime() + TWO_YEARS_MILLIS);
+        endDate.setUtc(true);
+        return endDate;
     }
-
     /**
      * 
      * @param dtStart The timerange start.

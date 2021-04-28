@@ -15,13 +15,16 @@
  */
 package org.unitedinternet.cosmo.acegisecurity.providers.ticket;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.unitedinternet.cosmo.dao.ContentDao;
 import org.unitedinternet.cosmo.model.Item;
 import org.unitedinternet.cosmo.model.Ticket;
@@ -30,10 +33,13 @@ import org.unitedinternet.cosmo.server.ItemPath;
 
 /**
  */
-public class TicketAuthenticationProvider
-    implements AuthenticationProvider {
-    private static final Log LOG = LogFactory.getLog(TicketAuthenticationProvider.class);
+@Component
+@Transactional
+public class TicketAuthenticationProvider implements AuthenticationProvider {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(TicketAuthenticationProvider.class);
 
+    @Autowired
     private ContentDao contentDao;
 
     // AuthenticationProvider methods
@@ -70,7 +76,7 @@ public class TicketAuthenticationProvider
      * @param authentication The authentication.
      * @return The result.
      */
-    public boolean supports(Class authentication) {
+    public boolean supports(Class<?> authentication) {
         return TicketAuthenticationToken.class.
             isAssignableFrom(authentication);
     }

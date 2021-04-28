@@ -28,12 +28,12 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.jackrabbit.webdav.DavConstants;
 import org.apache.jackrabbit.webdav.WebdavResponseImpl;
 import org.apache.jackrabbit.webdav.xml.DomUtil;
 import org.apache.jackrabbit.webdav.xml.XmlSerializable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.unitedinternet.cosmo.dav.CosmoDavException;
 import org.unitedinternet.cosmo.dav.DavResponse;
 import org.unitedinternet.cosmo.dav.ticket.TicketConstants;
@@ -46,12 +46,11 @@ import org.w3c.dom.Element;
  * Extends {@link org.apache.jackrabbit.webdav.WebdavResponseImpl} and
  * implements methods for the DAV ticket extension.
  */
-public class StandardDavResponse extends WebdavResponseImpl
-    implements DavResponse, DavConstants, TicketConstants {
-    private static final Log LOG =
-        LogFactory.getLog(StandardDavResponse.class);
-    private static final XMLOutputFactory XML_OUTPUT_FACTORY =
-        XMLOutputFactory.newInstance();
+public class StandardDavResponse extends WebdavResponseImpl implements DavResponse, DavConstants, TicketConstants {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(StandardDavResponse.class);
+    
+    private static final XMLOutputFactory XML_OUTPUT_FACTORY =  XMLOutputFactory.newInstance();
 
     private HttpServletResponse originalHttpServletResponse;
 
@@ -92,14 +91,14 @@ public class StandardDavResponse extends WebdavResponseImpl
         return originalHttpServletResponse.getContentType();
     }
 
-
+    @Deprecated
     public String encodeUrl(String url) {
         return originalHttpServletResponse.encodeUrl(url);
     }
 
 
     public String encodeRedirectUrl(String url) {
-        return originalHttpServletResponse.encodeRedirectUrl(url);
+        return originalHttpServletResponse.encodeRedirectURL(url);
     }
 
 
@@ -196,7 +195,7 @@ public class StandardDavResponse extends WebdavResponseImpl
         originalHttpServletResponse.flushBuffer();
     }
 
-
+    @Deprecated
     public void setStatus(int sc, String sm) {
         originalHttpServletResponse.setStatus(sc, sm);
     }
@@ -231,11 +230,11 @@ public class StandardDavResponse extends WebdavResponseImpl
     public void sendXmlResponse(XmlSerializable serializable, int status) throws IOException {
         super.sendXmlResponse(serializable, status);
         if (serializable != null && LOG.isTraceEnabled()) {
-            StringBuffer sb = new StringBuffer("\n------------------------ Dump of response -------------------\n");
+            StringBuilder sb = new StringBuilder("\n------------------------ Dump of response -------------------\n");
             sb.append("Status: ").append(status).append("\n");
             sb.append(XmlSerializer.serialize(serializable));
             sb.append("\n------------------------ End dump of response -------------------");
-            LOG.trace(sb);
+            LOG.trace(sb.toString());
         }
     }
 
@@ -265,19 +264,15 @@ public class StandardDavResponse extends WebdavResponseImpl
     // DavResponse methods
 
     /**
-     * Send the <code>ticketdiscovery</code> response to a
-     * <code>MKTICKET</code> request.
+     * Send the <code>ticketdiscovery</code> response to a <code>MKTICKET</code> request.
      *
      * @param resource the resource on which the ticket was created
      * @param ticketId the id of the newly created ticket
      */
-    public void sendMkTicketResponse(DavItemResource resource,
-                                     String ticketId)
-        throws CosmoDavException, IOException {
+    public void sendMkTicketResponse(DavItemResource resource, String ticketId) throws CosmoDavException, IOException {
         setHeader(HEADER_TICKET, ticketId);
 
-        TicketDiscovery ticketdiscovery = (TicketDiscovery)
-            resource.getProperties().get(TICKETDISCOVERY);
+        TicketDiscovery ticketdiscovery = (TicketDiscovery) resource.getProperties().get(TICKETDISCOVERY);
         MkTicketInfo info = new MkTicketInfo(ticketdiscovery);
 
         sendXmlResponse(info, SC_OK);
@@ -291,9 +286,10 @@ public class StandardDavResponse extends WebdavResponseImpl
         }
 
         public Element toXml(Document document) {
-            Element prop =
-                DomUtil.createElement(document, XML_PROP, NAMESPACE);
-            prop.appendChild(td.toXml(document));
+            Element prop = DomUtil.createElement(document, XML_PROP, NAMESPACE);
+            if (td != null) {
+                prop.appendChild(td.toXml(document));
+            }
             return prop;
         }
     }

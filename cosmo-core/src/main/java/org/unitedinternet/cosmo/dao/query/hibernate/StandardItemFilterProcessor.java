@@ -24,15 +24,18 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.hibernate.Query;
-import org.hibernate.Session;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.persistence.TypedQuery;
+
+import org.hibernate.query.internal.QueryImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 import org.unitedinternet.cosmo.CosmoConstants;
 import org.unitedinternet.cosmo.calendar.Instance;
 import org.unitedinternet.cosmo.calendar.InstanceList;
 import org.unitedinternet.cosmo.calendar.RecurrenceExpander;
-import org.unitedinternet.cosmo.dao.hibernate.AbstractDaoImpl;
 import org.unitedinternet.cosmo.dao.query.ItemFilterProcessor;
 import org.unitedinternet.cosmo.model.ContentItem;
 import org.unitedinternet.cosmo.model.EventStamp;
@@ -53,52 +56,49 @@ import org.unitedinternet.cosmo.model.filter.LikeExpression;
 import org.unitedinternet.cosmo.model.filter.NoteItemFilter;
 import org.unitedinternet.cosmo.model.filter.NullExpression;
 import org.unitedinternet.cosmo.model.filter.StampFilter;
+import org.unitedinternet.cosmo.model.filter.StringAttributeFilter;
 import org.unitedinternet.cosmo.model.filter.TextAttributeFilter;
 import org.unitedinternet.cosmo.model.hibernate.HibNoteItem;
 import org.unitedinternet.cosmo.util.NoteOccurrenceUtil;
 
 /**
- * Standard Implementation of <code>ItemFilterProcessor</code>.
- * Translates filter into HQL Query, executes
- * query and processes the results.
+ * Standard Implementation of <code>ItemFilterProcessor</code>. Translates filter into HQL Query, executes query and
+ * processes the results.
  */
-public class StandardItemFilterProcessor extends AbstractDaoImpl implements ItemFilterProcessor {
+@Component
+public class StandardItemFilterProcessor  implements ItemFilterProcessor {
 
-    private static final Log LOG = LogFactory.getLog(StandardItemFilterProcessor.class);
-
+    private static final Logger LOG = LoggerFactory.getLogger(StandardItemFilterProcessor.class);
+    
+    @PersistenceContext
+    private EntityManager em;
+    
     /**
      * Constructor.
      */
     public StandardItemFilterProcessor() {
     }
 
-    /* (non-Javadoc)
-     * @see org.unitedinternet.cosmo.dao.query.ItemFilterProcessor#processFilter
-     * (org.hibernate.Session, org.unitedinternet.cosmo.model.filter.ItemFilter)
-     */
+    @Override
     public Set<Item> processFilter(ItemFilter filter) {
-        Query hibQuery = buildQuery(getSession(), filter);
-        List<Item> queryResults = hibQuery.list();
+        List<Item> queryResults = this.buildQueryInternal(filter).getResultList();
         return processResults(queryResults, filter);
     }
 
     /**
-     * Build Hibernate Query from ItemFilter using HQL.
-     * The query returned is essentially the first pass at
-     * retrieving the matched items.  A second pass is required in
-     * order determine if any recurring events match a timeRange
-     * in the filter.  This is due to the fact that recurring events
-     * may have complicated recurrence rules that are extremely
+     * Build Hibernate Query from ItemFilter using HQL. The query returned is essentially the first pass at retrieving
+     * the matched items. A second pass is required in order determine if any recurring events match a timeRange in the
+     * filter. This is due to the fact that recurring events may have complicated recurrence rules that are extremely
      * hard to match using HQL.
      *
-     * @param session session
-     * @param filter  item filter
+     * @param filter
+     *            item filter
      * @return hibernate query built using HQL
      */
-    public Query buildQuery(Session session, ItemFilter filter) {
-        StringBuffer selectBuf = new StringBuffer();
-        StringBuffer whereBuf = new StringBuffer();
-        StringBuffer orderBuf = new StringBuffer();
+    private TypedQuery<Item> buildQueryInternal(ItemFilter filter) {
+        StringBuilder selectBuf = new StringBuilder();
+        StringBuilder whereBuf = new StringBuilder();
+        StringBuilder orderBuf = new StringBuilder();
 
         HashMap<String, Object> params = new HashMap<String, Object>();
 
@@ -132,7 +132,7 @@ public class StandardItemFilterProcessor extends AbstractDaoImpl implements Item
             LOG.debug(selectBuf.toString());
         }
 
-        Query hqlQuery = session.createQuery(selectBuf.toString());
+        TypedQuery<Item> hqlQuery = this.em.createQuery(selectBuf.toString(), Item.class);
 
         for (Entry<String, Object> param : params.entrySet()) {
             hqlQuery.setParameter(param.getKey(), param.getValue());
@@ -145,9 +145,15 @@ public class StandardItemFilterProcessor extends AbstractDaoImpl implements Item
         return hqlQuery;
     }
 
-    private void handleItemFilter(StringBuffer selectBuf,
-                                  StringBuffer whereBuf, HashMap<String, Object> params,
-                                  ItemFilter filter) {
+    /**
+     * Defined for testing reasons.
+     */
+    protected QueryImpl<Item> buildQuery(ItemFilter filter) {
+        return (QueryImpl<Item>) this.buildQueryInternal(filter);
+    }
+
+    private void handleItemFilter(StringBuilder selectBuf, StringBuilder whereBuf, HashMap<String, Object> params,
+            ItemFilter filter) {
 
         if ("".equals(selectBuf.toString())) {
             selectBuf.append("select i from HibItem i");
@@ -157,7 +163,6 @@ public class StandardItemFilterProcessor extends AbstractDaoImpl implements Item
         if (filter.getUid() != null) {
             formatExpression(whereBuf, params, "i.uid", filter.getUid());
         }
-
 
         // filter on parent
         if (filter.getParent() != null) {
@@ -170,27 +175,26 @@ public class StandardItemFilterProcessor extends AbstractDaoImpl implements Item
             formatExpression(whereBuf, params, "i.displayName", filter.getDisplayName());
         }
 
-
         handleAttributeFilters(selectBuf, whereBuf, params, filter);
         handleStampFilters(selectBuf, whereBuf, filter);
 
     }
 
-    private void handleAttributeFilters(StringBuffer selectBuf,
-                                        StringBuffer whereBuf, HashMap<String, Object> params,
-                                        ItemFilter filter) {
+    private void handleAttributeFilters(StringBuilder selectBuf, StringBuilder whereBuf, HashMap<String, Object> params,
+            ItemFilter filter) {
         for (AttributeFilter attrFilter : filter.getAttributeFilters()) {
             if (attrFilter instanceof TextAttributeFilter) {
                 handleTextAttributeFilter(selectBuf, whereBuf, params, (TextAttributeFilter) attrFilter);
+            } else if (attrFilter instanceof StringAttributeFilter) {
+                handleStringAttributeFilter(selectBuf, whereBuf, params, (StringAttributeFilter) attrFilter);
             } else {
                 handleAttributeFilter(whereBuf, params, attrFilter);
             }
         }
     }
 
-    private void handleTextAttributeFilter(StringBuffer selectBuf,
-                                           StringBuffer whereBuf, HashMap<String, Object> params,
-                                           TextAttributeFilter filter) {
+    private void handleTextAttributeFilter(StringBuilder selectBuf, StringBuilder whereBuf,
+            HashMap<String, Object> params, TextAttributeFilter filter) {
 
         String alias = "ta" + params.size();
         selectBuf.append(", HibTextAttribute " + alias);
@@ -199,9 +203,17 @@ public class StandardItemFilterProcessor extends AbstractDaoImpl implements Item
         formatExpression(whereBuf, params, alias + ".value", filter.getValue());
     }
 
-    private void handleStampFilters(StringBuffer selectBuf,
-                                    StringBuffer whereBuf,
-                                    ItemFilter filter) {
+    private void handleStringAttributeFilter(StringBuilder selectBuf, StringBuilder whereBuf,
+            HashMap<String, Object> params, StringAttributeFilter filter) {
+
+        String alias = "ta" + params.size();
+        selectBuf.append(", HibStringAttribute " + alias);
+        appendWhere(whereBuf, alias + ".item=i and " + alias + ".qname=:" + alias + "qname");
+        params.put(alias + "qname", filter.getQname());
+        formatExpression(whereBuf, params, alias + ".value", filter.getValue());
+    }
+
+    private void handleStampFilters(StringBuilder selectBuf, StringBuilder whereBuf, ItemFilter filter) {
         for (StampFilter stampFilter : filter.getStampFilters()) {
             if (stampFilter instanceof EventStampFilter) {
                 handleEventStampFilter(selectBuf, whereBuf, (EventStampFilter) stampFilter);
@@ -211,8 +223,7 @@ public class StandardItemFilterProcessor extends AbstractDaoImpl implements Item
         }
     }
 
-    private void handleStampFilter(StringBuffer whereBuf, 
-                                   StampFilter filter) {
+    private void handleStampFilter(StringBuilder whereBuf, StampFilter filter) {
 
         String toAppend = "";
         if (filter.isMissing()) {
@@ -223,8 +234,7 @@ public class StandardItemFilterProcessor extends AbstractDaoImpl implements Item
         appendWhere(whereBuf, toAppend);
     }
 
-    private void handleAttributeFilter(StringBuffer whereBuf, HashMap<String, Object> params,
-                                       AttributeFilter filter) {
+    private void handleAttributeFilter(StringBuilder whereBuf, HashMap<String, Object> params, AttributeFilter filter) {
 
         String param = "param" + params.size();
         String toAppend = "";
@@ -232,15 +242,12 @@ public class StandardItemFilterProcessor extends AbstractDaoImpl implements Item
             toAppend += "not ";
         }
 
-        toAppend += "exists (select a.id from HibAttribute a where a.item=i and a.qname=:"
-                + param + ")";
+        toAppend += "exists (select a.id from HibAttribute a where a.item=i and a.qname=:" + param + ")";
         appendWhere(whereBuf, toAppend);
         params.put(param, filter.getQname());
     }
 
-    private void handleEventStampFilter(StringBuffer selectBuf,
-                                        StringBuffer whereBuf,
-                                        EventStampFilter filter) {
+    private void handleEventStampFilter(StringBuilder selectBuf, StringBuilder whereBuf, EventStampFilter filter) {
 
         selectBuf.append(", HibBaseEventStamp es");
         appendWhere(whereBuf, "es.item=i");
@@ -257,24 +264,25 @@ public class StandardItemFilterProcessor extends AbstractDaoImpl implements Item
         // handle time range
         if (filter.getPeriod() != null) {
             whereBuf.append(" and ( ");
-            whereBuf.append("(es.timeRangeIndex.isFloating=true and es.timeRangeIndex.startDate < '" + filter.getFloatEnd() + "'");
+            whereBuf.append("(es.timeRangeIndex.isFloating=true and es.timeRangeIndex.startDate < '"
+                    + filter.getFloatEnd() + "'");
             whereBuf.append(" and es.timeRangeIndex.endDate > '" + filter.getFloatStart() + "')");
 
-            whereBuf.append(" or (es.timeRangeIndex.isFloating=false and " +
-                    "es.timeRangeIndex.startDate < '" + filter.getUTCEnd() + "'");
+            whereBuf.append(" or (es.timeRangeIndex.isFloating=false and " + "es.timeRangeIndex.startDate < '"
+                    + filter.getUTCEnd() + "'");
             whereBuf.append(" and es.timeRangeIndex.endDate > '" + filter.getUTCStart() + "')");
 
             // edge case where start==end
-            whereBuf.append(" or (es.timeRangeIndex.startDate=es.timeRangeIndex.endDate and " +
-                    "(es.timeRangeIndex.startDate='" + filter.getFloatStart() + "' or es.timeRangeIndex.startDate='" + filter.getUTCStart() + "'))");
+            whereBuf.append(" or (es.timeRangeIndex.startDate=es.timeRangeIndex.endDate and "
+                    + "(es.timeRangeIndex.startDate='" + filter.getFloatStart() + "' or es.timeRangeIndex.startDate='"
+                    + filter.getUTCStart() + "'))");
 
             whereBuf.append(")");
         }
     }
 
-    private void handleNoteItemFilter(StringBuffer selectBuf,
-                                      StringBuffer whereBuf, HashMap<String, Object> params,
-                                      NoteItemFilter filter) {
+    private void handleNoteItemFilter(StringBuilder selectBuf, StringBuilder whereBuf, HashMap<String, Object> params,
+            NoteItemFilter filter) {
         selectBuf.append("select i from HibNoteItem i");
         handleItemFilter(selectBuf, whereBuf, params, filter);
         handleContentItemFilter(selectBuf, whereBuf, params, filter);
@@ -302,7 +310,7 @@ public class StandardItemFilterProcessor extends AbstractDaoImpl implements Item
             formatExpression(whereBuf, params, alias + ".value", filter.getReminderTime());
         }
 
-        //filter by master NoteItem
+        // filter by master NoteItem
         if (filter.getMasterNoteItem() != null) {
             appendWhere(whereBuf, "(i=:masterItem or i.modifies=:masterItem)");
             params.put("masterItem", filter.getMasterNoteItem());
@@ -324,11 +332,14 @@ public class StandardItemFilterProcessor extends AbstractDaoImpl implements Item
                 appendWhere(whereBuf, "size(i.modifications) = 0");
             }
         }
+
+        if (filter.getModifiedSince() != null) {
+            formatExpression(whereBuf, params, "i.modifiedDate", filter.getModifiedSince());
+        }
     }
 
-    private void handleContentItemFilter(StringBuffer selectBuf,
-                                         StringBuffer whereBuf, HashMap<String, Object> params,
-                                         ContentItemFilter filter) {
+    private void handleContentItemFilter(StringBuilder selectBuf, StringBuilder whereBuf, HashMap<String, Object> params,
+            ContentItemFilter filter) {
 
         if ("".equals(selectBuf.toString())) {
             selectBuf.append("select i from HibContentItem i");
@@ -341,8 +352,7 @@ public class StandardItemFilterProcessor extends AbstractDaoImpl implements Item
         }
     }
 
-
-    private void appendWhere(StringBuffer whereBuf, String toAppend) {
+    private void appendWhere(StringBuilder whereBuf, String toAppend) {
         if ("".equals(whereBuf.toString())) {
             whereBuf.append(" where " + toAppend);
         } else {
@@ -355,14 +365,13 @@ public class StandardItemFilterProcessor extends AbstractDaoImpl implements Item
     }
 
     /**
-     * Because a timeRange query requires two passes: one to get the list
-     * of possible events that occur in the range, and one
-     * to expand recurring events if necessary.
-     * This is required because we only index a start and end
-     * for the entire recurrence series, and expansion is required to determine
-     * if the event actually occurs, and to return individual occurences.
+     * Because a timeRange query requires two passes: one to get the list of possible events that occur in the range,
+     * and one to expand recurring events if necessary. This is required because we only index a start and end for the
+     * entire recurrence series, and expansion is required to determine if the event actually occurs, and to return
+     * individual occurences.
      */
-    private HashSet<Item> processResults(List<Item> results, ItemFilter itemFilter) {
+    @Override
+    public Set<Item> processResults(List<Item> results, ItemFilter itemFilter) {
         boolean hasTimeRangeFilter = false;
         boolean includeMasterInResults = true;
         boolean doTimeRangeSecondPass = true;
@@ -370,24 +379,23 @@ public class StandardItemFilterProcessor extends AbstractDaoImpl implements Item
         HashSet<Item> processedResults = new HashSet<Item>();
         EventStampFilter eventFilter = (EventStampFilter) itemFilter.getStampFilter(EventStampFilter.class);
 
-
         if (eventFilter != null) {
             // does eventFilter have timeRange filter?
             hasTimeRangeFilter = eventFilter.getPeriod() != null;
         }
 
-        // When expanding recurring events do we include the master item in 
+        // When expanding recurring events do we include the master item in
         // the results, or just the expanded occurrences/modifications
-        if (hasTimeRangeFilter && "false".equalsIgnoreCase(itemFilter
-                .getFilterProperty(EventStampFilter.PROPERTY_INCLUDE_MASTER_ITEMS))) {
+        if (hasTimeRangeFilter && "false"
+                .equalsIgnoreCase(itemFilter.getFilterProperty(EventStampFilter.PROPERTY_INCLUDE_MASTER_ITEMS))) {
             includeMasterInResults = false;
         }
 
         // Should we do a second pass to expand recurring events to determine
         // if a recurring event actually occurs in the time-range specified,
         // or should we just return the recurring event without double-checking.
-        if (hasTimeRangeFilter && "false".equalsIgnoreCase(itemFilter
-                .getFilterProperty(EventStampFilter.PROPERTY_DO_TIMERANGE_SECOND_PASS))) {
+        if (hasTimeRangeFilter && "false"
+                .equalsIgnoreCase(itemFilter.getFilterProperty(EventStampFilter.PROPERTY_DO_TIMERANGE_SECOND_PASS))) {
             doTimeRangeSecondPass = false;
         }
 
@@ -401,7 +409,7 @@ public class StandardItemFilterProcessor extends AbstractDaoImpl implements Item
 
             NoteItem note = (NoteItem) item;
 
-            // If note is a modification then add both the modification and the 
+            // If note is a modification then add both the modification and the
             // master.
             if (note.getModifies() != null) {
                 processedResults.add(note);
@@ -413,17 +421,16 @@ public class StandardItemFilterProcessor extends AbstractDaoImpl implements Item
             else if (!hasTimeRangeFilter) {
                 processedResults.add(note);
             } else {
-                processedResults.addAll(processMasterNote(note, eventFilter,
-                        includeMasterInResults, doTimeRangeSecondPass));
+                processedResults
+                        .addAll(processMasterNote(note, eventFilter, includeMasterInResults, doTimeRangeSecondPass));
             }
         }
 
         return processedResults;
     }
 
-    private Collection<ContentItem> processMasterNote(NoteItem note,
-                                                      EventStampFilter filter, boolean includeMasterInResults,
-                                                      boolean doTimeRangeSecondPass) {
+    private Collection<ContentItem> processMasterNote(NoteItem note, EventStampFilter filter,
+            boolean includeMasterInResults, boolean doTimeRangeSecondPass) {
         EventStamp eventStamp = (EventStamp) note.getStamp(EventStamp.class);
         ArrayList<ContentItem> results = new ArrayList<ContentItem>();
 
@@ -437,9 +444,8 @@ public class StandardItemFilterProcessor extends AbstractDaoImpl implements Item
         // Otherwise, expand the recurring item to determine if it actually
         // occurs in the time range specified
         RecurrenceExpander expander = new RecurrenceExpander();
-        InstanceList instances = expander.getOcurrences(eventStamp.getEvent(),
-                eventStamp.getExceptions(), filter.getPeriod().getStart(),
-                filter.getPeriod().getEnd(), filter.getTimezone());
+        InstanceList instances = expander.getOcurrences(eventStamp.getEvent(), eventStamp.getExceptions(),
+                filter.getPeriod().getStart(), filter.getPeriod().getEnd(), filter.getTimezone());
 
         // If recurring event occurs in range, add master unless the filter
         // is configured to not return the master
@@ -453,8 +459,7 @@ public class StandardItemFilterProcessor extends AbstractDaoImpl implements Item
         }
 
         // Otherwise, add an occurence item for each occurrence
-        for (Iterator<Entry<String, Instance>> it = instances.entrySet()
-                .iterator(); it.hasNext(); ) {
+        for (Iterator<Entry<String, Instance>> it = instances.entrySet().iterator(); it.hasNext();) {
             Entry<String, Instance> entry = it.next();
 
             // Ignore overrides as they are separate items that should have
@@ -467,11 +472,10 @@ public class StandardItemFilterProcessor extends AbstractDaoImpl implements Item
         return results;
     }
 
-    private void formatExpression(StringBuffer whereBuf,
-                                  HashMap<String, Object> params, String propName,
-                                  FilterCriteria fc) {
+    private void formatExpression(StringBuilder whereBuf, HashMap<String, Object> params, String propName,
+            FilterCriteria fc) {
 
-        StringBuffer expBuf = new StringBuffer();
+        StringBuilder expBuf = new StringBuilder();
 
         FilterExpression exp = (FilterExpression) fc;
 

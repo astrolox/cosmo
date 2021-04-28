@@ -2,32 +2,38 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
-		<groupId>org.unitedinternet.cosmo</groupId>
+		<groupId>net.oneandone.cosmo</groupId>
 		<artifactId>cosmo-multimodule</artifactId>
-		<version>0.9-SNAPSHOT</version>
+		<version>3.7.10-SNAPSHOT</version>
 	</parent>
+		
 	<artifactId>cosmo-api</artifactId>
 
 	<name>cosmo-api</name>
+	<description>Cosmo API</description>
 
 	<properties>
-		<findbugs.suppressions.config.file>findbugs-suppressions.xml</findbugs.suppressions.config.file>
+		
 	</properties>
 	
 	<dependencies>
 		<dependency>
-			<groupId>commons-logging</groupId>
-			<artifactId>commons-logging</artifactId>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>				
 		</dependency>
 		<dependency>
 			<groupId>commons-lang</groupId>
 			<artifactId>commons-lang</artifactId>
 			<version>2.6</version>
 		</dependency>
-
+		<dependency>
+		  <groupId>javax.servlet</groupId>
+		  <artifactId>javax.servlet-api</artifactId>		  
+		  <scope>provided</scope>
+		</dependency>
 		<!-- ical4j related libs -->
 		<dependency>
-			<groupId>org.mnode.ical4j</groupId>
+			<groupId>net.oneandone.ical4j</groupId>
 			<artifactId>ical4j</artifactId>
             <exclusions>
                 <exclusion>
@@ -39,53 +45,14 @@
 		<dependency>
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-core</artifactId>
-			<exclusions>
-			 <exclusion>
-			     <groupId>org.springframework</groupId>
-			     <artifactId>spring-core</artifactId>
-			  </exclusion>
-			  <exclusion>
-			     <groupId>org.springframework</groupId>
-			     <artifactId>spring-beans</artifactId>
-			  </exclusion>
-			</exclusions>
 		</dependency>
 	</dependencies>
-	
-	 <build>
-    	<pluginManagement>
-			<plugins>
-				<plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>findbugs-maven-plugin</artifactId>
-                    <version>3.0.0</version>
-                    <executions>
-                        <execution>
-                            <id>default-check</id>
-                            <goals>
-                                <goal>check</goal>
-                            </goals>
-                            <inherited>true</inherited>
-                            <configuration>
-                                <failOnError>true</failOnError>
-                                <excludeFilterFile>${findbugs.suppressions.config.file}</excludeFilterFile>
-                                <xmlOutput>true</xmlOutput>
-                                <effort>Max</effort>
-                            </configuration>
-                        </execution>
-                    </executions>
-                    <inherited>true</inherited>
-                    <configuration>
-                        <excludeFilterFile>${findbugs.suppressions.config.file}</excludeFilterFile>
-                        <xmlOutput>true</xmlOutput>
-                        <effort>Max</effort>
-                    </configuration>
-                </plugin>
-			</plugins>
-		</pluginManagement>
-	</build>
 
   <scm>
-    <developerConnection>scm:git:ssh://git@github.com/1and1/cosmo/</developerConnection>
+    <developerConnection>scm:git:ssh://git@github.com/1and1/cosmo.git</developerConnection>
+	<connection>scm:git:ssh://git@github.com/1and1/cosmo.git</connection>
+	<url>https://github.com/1and1/</url>
+	<tag>cosmo-multimodule-1.5.3</tag>
   </scm>
+
 </project>

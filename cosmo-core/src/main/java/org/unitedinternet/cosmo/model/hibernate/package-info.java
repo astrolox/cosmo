@@ -59,7 +59,7 @@
         @NamedQuery(name = "item.by.ownerId.parentId.name", query = "select item from HibItem item join"
                 + " item.parentDetails pd where item.owner.id=:ownerid and "
                 + "pd.primaryKey.collection.id=:parentid and item.name=:name"),
-        @NamedQuery(name = "collections.children.by.parent", query = "select item from HibItem item join"
+        @NamedQuery(name = "collections.children.by.parent", query = "select item from HibCollectionItem item join"
                 + " item.parentDetails pd where pd.primaryKey.collection=:parent and item.class=HibCollectionItem"),
         @NamedQuery(name = "item.by.ownerId.nullParent.name", query = "select item from HibItem item"
                 + " where item.owner.id=:ownerid and size(item.parentDetails)=0 and item.name=:name"),
@@ -103,11 +103,9 @@
     
     // User Queries
     @NamedQuery(name="user.byUsername", query="from HibUser where username=:username"),
-    @NamedQuery(name="user.byUsername.ignorecase", query="from HibUser where lower(username)=lower(:username)"),
     @NamedQuery(name="user.byEmail", query="from HibUser where email=:email"),
-    @NamedQuery(name="user.byEmail.ignorecase", query="from HibUser where lower(email)=lower(:email)"),
-        @NamedQuery(name = "user.byUsernameOrEmail.ignorecase.ingoreId", query = "from HibUser where"
-                + " id!=:userid and (lower(username)=lower(:username) or lower(email)=lower(:email))"),
+        @NamedQuery(name = "user.byUsernameOrEmail", query = "from HibUser where"
+                + " id!=:userid and (username=:username or email=:email)"),
         @NamedQuery(name = "user.byUid", query = "from HibUser where uid=:uid"),
         @NamedQuery(name = "user.byActivationId", query = "from HibUser where activationid=:activationId"),
         @NamedQuery(name = "user.all", query = "from HibUser"),

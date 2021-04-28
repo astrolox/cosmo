@@ -19,8 +19,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import net.fortuna.ical4j.model.Calendar;
 import net.fortuna.ical4j.model.Component;
@@ -49,7 +49,7 @@ import net.fortuna.ical4j.util.Dates;
  * expanding recurring components.
  */
 public class RecurrenceExpander {
-    private static final Log LOG = LogFactory.getLog(RecurrenceExpander.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RecurrenceExpander.class);
     private static Date maxExpandDate = null;
    
     static {
@@ -83,8 +83,7 @@ public class RecurrenceExpander {
      */
     public Date[] calculateRecurrenceRange(Calendar calendar) {
         try{
-            ComponentList vevents = calendar.getComponents().getComponents(
-                    Component.VEVENT);
+            ComponentList<VEvent> vevents = calendar.getComponents().getComponents(Component.VEVENT);
             
             List<Component> exceptions = new ArrayList<Component>();
             Component masterComp = null;
@@ -182,15 +181,12 @@ public class RecurrenceExpander {
         // give us the broader range.
         
         // recurrence dates..
-        PropertyList rDates = comp.getProperties()
-                .getProperties(Property.RDATE);
-        for (Iterator i = rDates.iterator(); i.hasNext();) {
-            RDate rdate = (RDate) i.next();
+        PropertyList<RDate> rDates = comp.getProperties().getProperties(Property.RDATE);
+        for (RDate rdate : rDates) {
             // Both PERIOD and DATE/DATE-TIME values allowed
             if (Value.PERIOD.equals(rdate.getParameters().getParameter(
                     Parameter.VALUE))) {
-                for (Iterator j = rdate.getPeriods().iterator(); j.hasNext();) {
-                    Period period = (Period) j.next();
+                for (Period period : rdate.getPeriods()) {
                     if (period.getStart().before(dateRange[0])) {
                         dateRange[0] = period.getStart();
                     }
@@ -200,8 +196,7 @@ public class RecurrenceExpander {
                     
                 }
             } else {
-                for (Iterator j = rdate.getDates().iterator(); j.hasNext();) {
-                    Date startDate = (Date) j.next();
+                for (Date startDate : rdate.getDates()) {
                     Date endDate = org.unitedinternet.cosmo.calendar.util.Dates.getInstance(duration
                             .getTime(startDate), startDate);
                     if (startDate.before(dateRange[0])) {
@@ -215,10 +210,8 @@ public class RecurrenceExpander {
         }
 
         // recurrence rules..
-        PropertyList rRules = comp.getProperties()
-                .getProperties(Property.RRULE);
-        for (Iterator i = rRules.iterator(); i.hasNext();) {
-            RRule rrule = (RRule) i.next();
+        PropertyList<RRule> rRules = comp.getProperties().getProperties(Property.RRULE);
+        for (RRule rrule : rRules) {
             Recur recur = rrule.getRecur();
             
             // If this is an infinite recurring event, we are done processing
@@ -298,8 +291,7 @@ public class RecurrenceExpander {
      *         time range
      */
     public InstanceList getOcurrences(Calendar calendar, Date rangeStart, Date rangeEnd, TimeZone timezone) {
-        ComponentList vevents = calendar.getComponents().getComponents(
-                Component.VEVENT);
+        ComponentList<VEvent> vevents = calendar.getComponents().getComponents(Component.VEVENT);
         
         List<Component> exceptions = new ArrayList<Component>();
         Component masterComp = null;
@@ -381,7 +373,15 @@ public class RecurrenceExpander {
         Date rangeEnd = 
             org.unitedinternet.cosmo.calendar.util.Dates.getInstance(cal.getTime(), occurrence);
         
-        InstanceList instances = getOcurrences(calendar, occurrence, rangeEnd, null);
+        TimeZone tz = null;
+        
+        for(Object obj : calendar.getComponents(Component.VEVENT)){
+        	VEvent evt = (VEvent)obj;
+        	if(evt.getRecurrenceId() == null && evt.getStartDate() != null){
+        		tz = evt.getStartDate().getTimeZone();
+        	}
+        }
+        InstanceList instances = getOcurrences(calendar, occurrence, rangeEnd, tz);
         
         for(Iterator<Instance> it = instances.values().iterator(); it.hasNext();) {
             Instance instance = it.next();

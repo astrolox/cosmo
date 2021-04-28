@@ -24,6 +24,7 @@ import net.fortuna.ical4j.data.CalendarBuilder;
 import net.fortuna.ical4j.model.Calendar;
 import net.fortuna.ical4j.model.Component;
 import net.fortuna.ical4j.model.ComponentList;
+import net.fortuna.ical4j.model.Date;
 import net.fortuna.ical4j.model.DateList;
 import net.fortuna.ical4j.model.DateTime;
 import net.fortuna.ical4j.model.Dur;
@@ -31,13 +32,13 @@ import net.fortuna.ical4j.model.Parameter;
 import net.fortuna.ical4j.model.TimeZoneRegistry;
 import net.fortuna.ical4j.model.TimeZoneRegistryFactory;
 import net.fortuna.ical4j.model.component.VEvent;
+import net.fortuna.ical4j.model.component.VTimeZone;
 import net.fortuna.ical4j.model.component.VToDo;
 import net.fortuna.ical4j.model.property.Completed;
 import net.fortuna.ical4j.model.property.Status;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.unitedinternet.cosmo.calendar.ICalDate;
 import org.unitedinternet.cosmo.calendar.ICalendarUtils;
 import org.unitedinternet.cosmo.model.EntityFactory;
 import org.unitedinternet.cosmo.model.EventExceptionStamp;
@@ -158,7 +159,7 @@ public class EntityConverterTest {
         
         // mod should include VTIMEZONES
         Calendar eventCal = ees.getEventCalendar();
-        ComponentList vtimezones = eventCal.getComponents(Component.VTIMEZONE);
+        ComponentList<VTimeZone> vtimezones = eventCal.getComponents(Component.VTIMEZONE);
         Assert.assertEquals(1, vtimezones.size());
         
         
@@ -306,9 +307,9 @@ public class EntityConverterTest {
         
         Assert.assertEquals(1, cal.getComponents().size());
         
-        ComponentList comps = cal.getComponents(Component.VTODO);
+        ComponentList<VToDo> comps = cal.getComponents(Component.VTODO);
         Assert.assertEquals(1, comps.size());
-        VToDo task = (VToDo) comps.get(0);
+        VToDo task = comps.get(0);
         
         Assert.assertNull(task.getDateCompleted());
         Assert.assertNull(ICalendarUtils.getXProperty("X-OSAF-STARRED", task));
@@ -359,7 +360,7 @@ public class EntityConverterTest {
         cal.validate();
         
         // should be a single VEVENT
-        ComponentList comps = cal.getComponents(Component.VEVENT);
+        ComponentList<VEvent> comps = cal.getComponents(Component.VEVENT);
         Assert.assertEquals(1, comps.size());
         VEvent event = (VEvent) comps.get(0);
         
@@ -407,7 +408,10 @@ public class EntityConverterTest {
         eventStamp.setStartDate(new DateTime("20070212T074500"));
         eventStamp.setDuration(new Dur("PT1H"));
         eventStamp.setLocation("master location");
-        DateList dates = new ICalDate(";VALUE=DATE-TIME:20070212T074500,20070213T074500").getDateList();
+        DateList dates = new DateList();
+        dates.add(new Date("20070212T074500"));
+        dates.add(new Date("20070213T074500"));
+        
         eventStamp.setRecurrenceDates(dates);
         master.addStamp(eventStamp);
         
@@ -427,7 +431,7 @@ public class EntityConverterTest {
         
         // test modification VEVENT gets added properly
         Calendar cal = converter.convertNote(master);
-        ComponentList comps = cal.getComponents(Component.VEVENT);
+        ComponentList<VEvent> comps = cal.getComponents(Component.VEVENT);
         Assert.assertEquals(2, comps.size());
         @SuppressWarnings("unused")
 		VEvent masterEvent = (VEvent) comps.get(0);
@@ -470,7 +474,9 @@ public class EntityConverterTest {
         eventStamp.createCalendar();
         eventStamp.setStartDate(new DateTime("20070212T074500"));
         eventStamp.setAnyTime(true);
-        DateList dates = new ICalDate(";VALUE=DATE-TIME:20070212T074500,20070213T074500").getDateList();
+        DateList dates = new DateList();
+        dates.add(new Date("20070212T074500"));
+        dates.add(new Date("20070213T074500"));
         eventStamp.setRecurrenceDates(dates);
         master.addStamp(eventStamp);
         
@@ -487,7 +493,7 @@ public class EntityConverterTest {
         
         Calendar cal = converter.convertNote(master);
         cal.validate();
-        ComponentList comps = cal.getComponents(Component.VEVENT);
+        ComponentList<VEvent> comps = cal.getComponents(Component.VEVENT);
         Assert.assertEquals(2, comps.size());
         VEvent masterEvent = (VEvent) comps.get(0);
         VEvent modEvent = (VEvent) comps.get(1);

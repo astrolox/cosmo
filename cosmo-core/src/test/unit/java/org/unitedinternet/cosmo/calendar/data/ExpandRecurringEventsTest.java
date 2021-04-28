@@ -64,18 +64,17 @@ public class ExpandRecurringEventsTest {
         filter.setAllSubComponents();
         filter.setAllProperties();
         
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
         filter.filter(calendar, buffer);
         StringReader sr = new StringReader(buffer.toString());
         
         Calendar filterCal = cb.build(sr);
         
-        ComponentList comps = filterCal.getComponents().getComponents("VEVENT");
+        ComponentList<VEvent> comps = filterCal.getComponents().getComponents("VEVENT");
         
         // Should expand to 3 event components
         Assert.assertEquals(3, comps.size());
-        
-        @SuppressWarnings("unchecked")
+                
         Iterator<VEvent> it = comps.iterator();
         VEvent event = it.next();
         
@@ -106,7 +105,7 @@ public class ExpandRecurringEventsTest {
         FileInputStream fis = new FileInputStream(baseDir + "expand_recurr_test2.ics");
         Calendar calendar = cb.build(fis);
         
-        ComponentList comps = calendar.getComponents().getComponents("VEVENT");
+        ComponentList<VEvent> comps = calendar.getComponents().getComponents("VEVENT");
         
         Assert.assertEquals(5, comps.size());
         
@@ -123,7 +122,7 @@ public class ExpandRecurringEventsTest {
         filter.setAllSubComponents();
         filter.setAllProperties();
         
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
         filter.filter(calendar, buffer);
         StringReader sr = new StringReader(buffer.toString());
         
@@ -133,8 +132,7 @@ public class ExpandRecurringEventsTest {
         
         // Should expand to 3 event components
         Assert.assertEquals(3, comps.size());
-        
-        @SuppressWarnings("unchecked")
+                
         Iterator<VEvent> it = comps.iterator();
         VEvent event = it.next();
         
@@ -179,18 +177,17 @@ public class ExpandRecurringEventsTest {
         filter.setAllSubComponents();
         filter.setAllProperties();
         
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
         filter.filter(calendar, buffer);
         StringReader sr = new StringReader(buffer.toString());
         
         Calendar filterCal = cb.build(sr);
         
-        ComponentList comps = filterCal.getComponents().getComponents("VEVENT");
+        ComponentList<VEvent> comps = filterCal.getComponents().getComponents("VEVENT");
         
         // Should be the same component
         Assert.assertEquals(1, comps.size());
-        
-        @SuppressWarnings("unchecked")
+                
         Iterator<VEvent> it = comps.iterator();
         VEvent event = it.next();
         
@@ -209,11 +206,9 @@ public class ExpandRecurringEventsTest {
         // timezone should be stripped
         Assert.assertNull(calendar.getComponents().getComponent("VTIMEZONE"));
         
-        ComponentList comps = calendar.getComponents().getComponents("VEVENT");
+        ComponentList<VEvent> comps = calendar.getComponents().getComponents("VEVENT");
         
-        for(@SuppressWarnings("unchecked")
-        Iterator<VEvent> it = comps.iterator();it.hasNext();) {
-            VEvent event = it.next();
+        for(VEvent event : comps) {
             DateTime dt = (DateTime) event.getStartDate().getDate();
             
             // verify start dates are UTC

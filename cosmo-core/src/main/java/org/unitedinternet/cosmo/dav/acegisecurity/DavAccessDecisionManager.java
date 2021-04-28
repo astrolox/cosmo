@@ -19,8 +19,17 @@ import java.util.Collection;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDecisionManager;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.ConfigAttribute;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.web.FilterInvocation;
+import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
+import org.springframework.stereotype.Service;
 import org.unitedinternet.cosmo.acegisecurity.providers.ticket.TicketAuthenticationToken;
 import org.unitedinternet.cosmo.acegisecurity.userdetails.CosmoUserDetails;
 import org.unitedinternet.cosmo.dav.CaldavMethodType;
@@ -34,14 +43,6 @@ import org.unitedinternet.cosmo.model.Ticket;
 import org.unitedinternet.cosmo.model.User;
 import org.unitedinternet.cosmo.service.UserService;
 import org.unitedinternet.cosmo.util.UriTemplate;
-import org.springframework.security.access.AccessDecisionManager;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.access.ConfigAttribute;
-import org.springframework.security.authentication.InsufficientAuthenticationException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.web.FilterInvocation;
-import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 
 /**
  * <p>
@@ -50,11 +51,18 @@ import org.springframework.security.web.authentication.preauth.PreAuthenticatedA
  * for all other resources.
  * </p>
  */
+@Service
 public class DavAccessDecisionManager
         implements AccessDecisionManager, ExtendedDavConstants {
-    private static final Log LOG = LogFactory.getLog(DavAccessDecisionManager.class);
+    
+    private static final Logger LOG = LoggerFactory.getLogger(DavAccessDecisionManager.class);
 
-    private UserService userService;
+    private final UserService userService;
+    
+    public DavAccessDecisionManager(UserService userService) {
+        super();
+        this.userService = userService;
+    }
 
     // DavAccessDecisionManager methods
 
@@ -131,11 +139,7 @@ public class DavAccessDecisionManager
                          AclEvaluator evaluator)
             throws AclEvaluationException {
         if (LOG.isDebugEnabled()) {
-            //Fix Log Forging - fortify
-            //Writing unvalidated user input to log files can allow an attacker
-            //to forge log entries or inject malicious content into the logs.
-            LOG.debug("matching resource " + path
-                    + " with method " + method);
+            LOG.debug("matching resource {} with method {}", path, method);
         }
 
         UriTemplate.Match match = null;
@@ -162,10 +166,7 @@ public class DavAccessDecisionManager
         }
         if (method.equals("PROPFIND")) {
             if (LOG.isDebugEnabled()) {
-                //Fix Log Forging - fortify
-                //Writing unvalidated user input to log files can allow an attacker to forge log entries
-                //or inject malicious content into the logs.
-                LOG.debug("Allowing method " + method + " so provider can evaluate check access itself");
+                LOG.debug("Allowing method: {} so provider can evaluate check access itself", method);
             }
             return;
         }
@@ -175,13 +176,13 @@ public class DavAccessDecisionManager
                 DavPrivilege.READ : DavPrivilege.WRITE;
         if (!uae.evaluateUserPrincipalCollection(privilege)) {
             if (LOG.isDebugEnabled()) {
-                LOG.debug("Principal does not have privilege " + privilege + "; denying access");
+                LOG.debug("Principal does not have privilege {}; denying access", privilege);
             }
             throw new AclEvaluationException(null, privilege);
         }
 
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Principal has privilege " + privilege + "; allowing access");
+            LOG.debug("Principal has privilege {}; allowing access", privilege);
         }
     }
 
@@ -194,20 +195,17 @@ public class DavAccessDecisionManager
         }
 
         String username = match.get("username");
-        User user = getUserService().getUser(username);
+        User user = this.userService.getUser(username);
         if (user == null) {
             if (LOG.isDebugEnabled()) {
-                //Fix Log Forging - fortify
-                //Writing unvalidated user input to log files can allow an attacker to forge log entries or
-                //inject malicious content into the logs.
-                LOG.debug("User " + username + " not found; allowing for 404");
+                LOG.debug("User {} not found; allowing for 404", username);
             }
             return;
         }
 
         if (method.equals("PROPFIND")) {
             if (LOG.isDebugEnabled()) {
-                LOG.debug("Allowing method " + method + " so provider can evaluate check access itself");
+                LOG.debug("Allowing method {} so provider can evaluate check access itself", method);
             }
             return;
         }
@@ -217,24 +215,17 @@ public class DavAccessDecisionManager
                 DavPrivilege.READ : DavPrivilege.WRITE;
         if (!uae.evaluateUserPrincipal(user, privilege)) {
             if (LOG.isDebugEnabled()) {
-                LOG.debug("Principal does not have privilege " + privilege + "; denying access");
+                LOG.debug("Principal does not have privilege {}; denying access", privilege);
             }
             throw new AclEvaluationException(null, privilege);
         }
 
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Principal has privilege " + privilege + "; allowing access");
+            LOG.debug("Principal has privilege {}; allowing access", privilege);
         }
-    }
+    }   
 
-    public void setUserService(UserService userService) {
-        this.userService = userService;
-    }
-
-    public UserService getUserService() {
-        return userService;
-    }
-
+    @SuppressWarnings("serial")
     public static class AclEvaluationException extends Exception {
         private Item item;
         private transient DavPrivilege privilege;

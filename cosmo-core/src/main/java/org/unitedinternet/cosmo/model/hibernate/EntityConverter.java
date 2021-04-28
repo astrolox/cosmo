@@ -20,11 +20,34 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Vector;
+
+import org.apache.commons.lang.StringUtils;
+import org.unitedinternet.cosmo.calendar.ICalendarUtils;
+import org.unitedinternet.cosmo.calendar.util.CalendarUtils;
+import org.unitedinternet.cosmo.dao.ModelValidationException;
+import org.unitedinternet.cosmo.icalendar.ICalendarConstants;
+import org.unitedinternet.cosmo.model.AvailabilityItem;
+import org.unitedinternet.cosmo.model.CalendarCollectionStamp;
+import org.unitedinternet.cosmo.model.CollectionItem;
+import org.unitedinternet.cosmo.model.ContentItem;
+import org.unitedinternet.cosmo.model.EntityFactory;
+import org.unitedinternet.cosmo.model.EventExceptionStamp;
+import org.unitedinternet.cosmo.model.EventStamp;
+import org.unitedinternet.cosmo.model.FreeBusyItem;
+import org.unitedinternet.cosmo.model.ICalendarItem;
+import org.unitedinternet.cosmo.model.Item;
+import org.unitedinternet.cosmo.model.NoteItem;
+import org.unitedinternet.cosmo.model.NoteOccurrence;
+import org.unitedinternet.cosmo.model.StampUtils;
+import org.unitedinternet.cosmo.model.TaskStamp;
+import org.unitedinternet.cosmo.model.TriageStatus;
+import org.unitedinternet.cosmo.model.TriageStatusUtil;
 
 import net.fortuna.ical4j.model.Calendar;
 import net.fortuna.ical4j.model.Component;
@@ -58,28 +81,6 @@ import net.fortuna.ical4j.model.property.Trigger;
 import net.fortuna.ical4j.model.property.Uid;
 import net.fortuna.ical4j.model.property.Version;
 
-import org.apache.commons.lang.StringUtils;
-import org.unitedinternet.cosmo.calendar.ICalendarUtils;
-import org.unitedinternet.cosmo.calendar.util.CalendarUtils;
-import org.unitedinternet.cosmo.dao.ModelValidationException;
-import org.unitedinternet.cosmo.icalendar.ICalendarConstants;
-import org.unitedinternet.cosmo.model.AvailabilityItem;
-import org.unitedinternet.cosmo.model.CalendarCollectionStamp;
-import org.unitedinternet.cosmo.model.CollectionItem;
-import org.unitedinternet.cosmo.model.ContentItem;
-import org.unitedinternet.cosmo.model.EntityFactory;
-import org.unitedinternet.cosmo.model.EventExceptionStamp;
-import org.unitedinternet.cosmo.model.EventStamp;
-import org.unitedinternet.cosmo.model.FreeBusyItem;
-import org.unitedinternet.cosmo.model.ICalendarItem;
-import org.unitedinternet.cosmo.model.Item;
-import org.unitedinternet.cosmo.model.NoteItem;
-import org.unitedinternet.cosmo.model.NoteOccurrence;
-import org.unitedinternet.cosmo.model.StampUtils;
-import org.unitedinternet.cosmo.model.TaskStamp;
-import org.unitedinternet.cosmo.model.TriageStatus;
-import org.unitedinternet.cosmo.model.TriageStatusUtil;
-
 /**
  * A component that converts iCalendar objects to entities and vice versa.
  * Often this is not a straight one-to-one mapping, because recurring
@@ -88,6 +89,7 @@ import org.unitedinternet.cosmo.model.TriageStatusUtil;
  * {@link NoteItem} with zero or more {@link NoteItem} modifications and
  * potentially also {@link NoteOccurrence}s.
  */
+@org.springframework.stereotype.Component
 public class EntityConverter { 
     private static final TimeZoneRegistry TIMEZONE_REGISTRY =
         TimeZoneRegistryFactory.getInstance().createRegistry();
@@ -459,10 +461,9 @@ public class EntityConverter {
         String masterLocation = stamp.getLocation();
         
         // build timezone map that includes all timezones in master calendar
-        ComponentList timezones = masterCal.getComponents(Component.VTIMEZONE);
+        ComponentList<VTimeZone> timezones = masterCal.getComponents(Component.VTIMEZONE);
         HashMap<String, VTimeZone> tzMap = new HashMap<String, VTimeZone>();
-        for(Iterator it = timezones.iterator(); it.hasNext();) {
-            VTimeZone vtz = (VTimeZone) it.next();
+        for(VTimeZone vtz : timezones) {             
             tzMap.put(vtz.getTimeZoneId().getValue(), vtz);
         }
         
@@ -689,8 +690,7 @@ public class EntityConverter {
      * @return The alarm.
      */
     private VAlarm getDisplayAlarm(VEvent event) {
-        for(Iterator it = event.getAlarms().iterator();it.hasNext();) {
-            VAlarm alarm = (VAlarm) it.next();
+        for(VAlarm alarm : event.getAlarms()) {
             if (alarm.getProperties().getProperty(Property.ACTION).equals(Action.DISPLAY)) {
                 return alarm;
             }
@@ -733,13 +733,12 @@ public class EntityConverter {
         
         Calendar masterCalendar = calendar;
         
-        ComponentList vevents = masterCalendar.getComponents().getComponents(
+        ComponentList<VEvent> vevents = masterCalendar.getComponents().getComponents(
                 Component.VEVENT);
         EventStamp eventStamp = StampUtils.getEventStamp(masterNote);
 
         // get list of exceptions (VEVENT with RECURRENCEID)
-        for (Iterator<VEvent> i = vevents.iterator(); i.hasNext();) {
-            VEvent event = i.next();
+        for (VEvent event : vevents) {            
             // make sure event has DTSTAMP, otherwise validation will fail
             if (event.getDateStamp()==null) {
                 event.getProperties().add(new DtStamp(new DateTime()));
@@ -788,10 +787,9 @@ public class EntityConverter {
         // definitions that are in the registry.  The idea is to not store
         // extra data.  Instead, the timezones will be added to the calendar
         // by the getCalendar() api.
-        ComponentList timezones = calendar.getComponents(Component.VTIMEZONE);
-        ArrayList toRemove = new ArrayList();
-        for(Iterator it = timezones.iterator();it.hasNext();) {
-            VTimeZone vtz = (VTimeZone) it.next();
+        ComponentList<VTimeZone> timezones = calendar.getComponents(Component.VTIMEZONE);
+        List<VTimeZone> toRemove = new ArrayList<>();
+        for(VTimeZone vtz : timezones) {
             String tzid = vtz.getTimeZoneId().getValue();
             TimeZone tz = TIMEZONE_REGISTRY.getTimeZone(tzid);
             //  Remove timezone iff it matches the one in the registry
@@ -900,9 +898,8 @@ public class EntityConverter {
         
         // copy VTIMEZONEs to front if present
         EventStamp es = StampUtils.getEventStamp(masterNote);
-        ComponentList vtimezones = es.getEventCalendar().getComponents(Component.VTIMEZONE);
-        for(Object obj : vtimezones) {
-            VTimeZone vtimezone = (VTimeZone)obj;
+        ComponentList<VTimeZone> vtimezones = es.getEventCalendar().getComponents(Component.VTIMEZONE);
+        for( VTimeZone vtimezone : vtimezones) {
             exceptionStamp.getEventCalendar().getComponents().add(0, vtimezone);
         }
         
@@ -926,10 +923,9 @@ public class EntityConverter {
         exceptionStamp.setExceptionEvent(event);
         
         // copy VTIMEZONEs to front if present
-        ComponentList vtimezones = exceptionStamp.getMasterStamp()
+        ComponentList<VTimeZone> vtimezones = exceptionStamp.getMasterStamp()
                 .getEventCalendar().getComponents(Component.VTIMEZONE);
-        for(Object obj: vtimezones) {
-            VTimeZone vtimezone = (VTimeZone)obj;
+        for(VTimeZone vtimezone : vtimezones) {
             exceptionStamp.getEventCalendar().getComponents().add(0, vtimezone);
         }
         
@@ -997,7 +993,10 @@ public class EntityConverter {
 
         // calculate triage status based on start date
         java.util.Date now =java.util.Calendar.getInstance().getTime();
-        boolean later = event.getStartDate().getDate().after(now);
+        Date eventStartDate = event.getStartDate() != null && event.getStartDate().getDate() != null 
+        		? event.getStartDate().getDate()
+        		:new Date();
+        boolean later = eventStartDate.after(now);
         int code = later ? TriageStatus.CODE_LATER : TriageStatus.CODE_DONE;
         
         TriageStatus triageStatus = note.getTriageStatus();
@@ -1143,8 +1142,8 @@ public class EntityConverter {
      * @param components The component list.
      * @return The component.
      */
-    private Component getMasterComponent(ComponentList components) {
-        Iterator<Component> it = components.iterator();
+    private Component getMasterComponent(ComponentList<? extends Component> components) {
+        Iterator<? extends Component> it = components.iterator();
         while(it.hasNext()) {
             Component c = it.next();
             if(c.getProperty(Property.RECURRENCE_ID)==null) {
@@ -1161,14 +1160,12 @@ public class EntityConverter {
      * @param calendar The calendar.
      */
     private void addTimezones(Calendar calendar) {
-        ComponentList comps = calendar.getComponents();
+        ComponentList<CalendarComponent> comps = calendar.getComponents();
         Set<VTimeZone> timezones = new HashSet<VTimeZone>();
         
-        for(Iterator<Component> it = comps.iterator();it.hasNext();) {
-            Component comp = it.next();
-            PropertyList props = comp.getProperties();
-            for(Iterator<Property> it2 = props.iterator();it2.hasNext();) {
-                Property prop = it2.next();
+        for(CalendarComponent comp : comps) {            
+            PropertyList<Property> props = comp.getProperties();
+            for(Property prop : props) {
                 if(prop instanceof DateProperty) {
                     DateProperty dateProp = (DateProperty) prop;
                     Date d = dateProp.getDate();
@@ -1202,11 +1199,10 @@ public class EntityConverter {
     private CalendarContext[] splitCalendar(Calendar calendar) {
         Vector<CalendarContext> contexts = new Vector<CalendarContext>();
         Set<String> allComponents = new HashSet<String>();
-        Map<String, ComponentList> componentMap = new HashMap<String, ComponentList>();
+        Map<String, ComponentList<CalendarComponent>> componentMap = new HashMap<>();
         
-        ComponentList comps = calendar.getComponents();
-        for(Iterator<Component> it = comps.iterator(); it.hasNext();) {
-            Component comp = it.next();
+        ComponentList<CalendarComponent> comps = calendar.getComponents();
+        for(CalendarComponent comp : comps) {            
             // ignore vtimezones for now
             if(comp instanceof VTimeZone) {
                 continue;
@@ -1227,17 +1223,17 @@ public class EntityConverter {
             
             allComponents.add(key);
             
-            ComponentList cl = componentMap.get(uid.getValue());
+            ComponentList<CalendarComponent> cl = componentMap.get(uid.getValue());
             
             if(cl==null) {
-                cl = new ComponentList();
+                cl = new ComponentList<>();
                 componentMap.put(uid.getValue(), cl);
             }
             
             cl.add(comp);
         }
         
-        for(Entry<String, ComponentList> entry : componentMap.entrySet()) {
+        for(Entry<String, ComponentList<CalendarComponent>> entry : componentMap.entrySet()) {
            
             Component firstComp = (Component) entry.getValue().get(0);
             

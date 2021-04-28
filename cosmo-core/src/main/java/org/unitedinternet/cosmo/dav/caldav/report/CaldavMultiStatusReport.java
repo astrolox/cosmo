@@ -15,8 +15,6 @@
  */
 package org.unitedinternet.cosmo.dav.caldav.report;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.jackrabbit.webdav.MultiStatusResponse;
 import org.apache.jackrabbit.webdav.property.DavPropertyNameSet;
 import org.apache.jackrabbit.webdav.version.report.ReportInfo;
@@ -46,9 +44,7 @@ import org.w3c.dom.Element;
  */
 public abstract class CaldavMultiStatusReport extends MultiStatusReport
     implements CaldavConstants {
-    @SuppressWarnings("unused")
-    private static final Log LOG = LogFactory.getLog(CaldavMultiStatusReport.class);
-
+    
     private OutputFilter outputFilter;
 
     // ReportBase methods
@@ -123,13 +119,13 @@ public abstract class CaldavMultiStatusReport extends MultiStatusReport
         if (! resource.exists()) {
             return null;
         }
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder builder = new StringBuilder();
         if (outputFilter != null) {
-            outputFilter.filter(resource.getCalendar(), buffer);
+            outputFilter.filter(resource.getCalendar(), builder);
         }
         else {
-            buffer.append(resource.getCalendar().toString());
+            builder.append(resource.getCalendar().toString());
         }
-        return buffer.toString();
+        return builder.toString();
     }
 }

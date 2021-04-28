@@ -21,6 +21,7 @@ import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
 
 import net.fortuna.ical4j.model.Calendar;
@@ -68,7 +69,7 @@ public class OutputFilter {
 
     private String componentName;
     private boolean allSubComponents;
-    private HashMap<String, OutputFilter> subComponents;
+    private Map<String, OutputFilter> subComponents;
     private boolean allProperties;
     private HashMap<String, Object> properties;
     private Period expand;
@@ -86,9 +87,9 @@ public class OutputFilter {
     /**
      * Filter.
      * @param calendar The calendar.
-     * @param buffer The string buffer.
+     * @param builder The string buffer.
      */
-    public void filter(Calendar calendar, final StringBuffer buffer) {
+    public void filter(Calendar calendar, final StringBuilder builder) {
         // If expansion of recurrence is required what we have to do
         // is create a whole new calendar object with the new expanded
         // components in it and then write that one out.
@@ -104,15 +105,15 @@ public class OutputFilter {
             calendar = createLimitedRecurrence(calendar);
         }
 
-        buffer.append(Calendar.BEGIN).
+        builder.append(Calendar.BEGIN).
             append(':').
             append(Calendar.VCALENDAR).
             append("\n");
 
-        filterProperties(calendar.getProperties(), buffer);
-        filterSubComponents(calendar.getComponents(), buffer);
+        filterProperties(calendar.getProperties(), builder);
+        filterSubComponents(calendar.getComponents(), builder);
 
-        buffer.append(Calendar.END).
+        builder.append(Calendar.END).
             append(':').
             append(Calendar.VCALENDAR).
             append("\n");
@@ -129,19 +130,19 @@ public class OutputFilter {
         newCal.getProperties().addAll(calendar.getProperties());
        
         InstanceList instances = new InstanceList();
-        ComponentList overrides = new ComponentList();
+        ComponentList<CalendarComponent> overrides = new ComponentList<>();
         
         // Limit range
         Period period = getLimit();
         
         // Filter override components based on limit range
-        for (Object comp: calendar.getComponents()) {
+        for (CalendarComponent comp: calendar.getComponents()) {
             // Only care about VEVENT, VJOURNAL, VTODO
             if ((comp instanceof VEvent) ||
                 (comp instanceof VJournal) ||
                 (comp instanceof VToDo)) {
                 // Add master component to result Calendar
-                if (((CalendarComponent)comp).getProperties().
+                if (comp.getProperties().
                     getProperty(Property.RECURRENCE_ID) == null) {
                     newCal.getComponents().add(comp);
                     // seed the InstanceList with master component
@@ -159,8 +160,8 @@ public class OutputFilter {
         
         // Add override components to InstanceList.
         // Only add override if it changes anything about the InstanceList.
-        for (Object comp : overrides) {
-            if (comp instanceof CalendarComponent && instances.addOverride((CalendarComponent)comp, period.getStart(), period.getEnd())) {
+        for (CalendarComponent comp : overrides) {
+            if (instances.addOverride(comp, period.getStart(), period.getEnd())) {
                 newCal.getComponents().add(comp);
             }
         }
@@ -181,9 +182,9 @@ public class OutputFilter {
         // Now look at each component and determine whether expansion is
         // required
         InstanceList instances = new InstanceList();
-        ComponentList overrides = new ComponentList();
+        ComponentList<CalendarComponent> overrides = new ComponentList<>();
         Component master = null;
-        for (Object comp :calendar.getComponents()) {
+        for (CalendarComponent comp :calendar.getComponents()) {
             if ((comp instanceof VEvent) ||
                 (comp instanceof VJournal) ||
                 (comp instanceof VToDo)) {
@@ -199,7 +200,7 @@ public class OutputFilter {
             } else if (!(comp instanceof VTimeZone))  {
                 // Create new component and convert properties to UTC
                 try {
-                    Object newcomp = ((CalendarComponent)(comp)).copy();
+                    CalendarComponent newcomp = (CalendarComponent)comp.copy();
                     componentToUTC((CalendarComponent)newcomp);
                     newCal.getComponents().add(newcomp);
                 } catch (Exception e) {
@@ -321,23 +322,23 @@ public class OutputFilter {
         }
 
         // Do to each embedded component
-        ComponentList subcomps = null;
+        ComponentList<? extends CalendarComponent> subcomps = null;
         if (comp instanceof VEvent) {
-            subcomps = ((VEvent)comp).getAlarms();
+            subcomps = ((VEvent) comp).getAlarms() ;
         }
         else if (comp instanceof VToDo) {
             subcomps = ((VToDo)comp).getAlarms();
         }
 
         if (subcomps != null) {
-            for (Component subcomp : (List<Component>) subcomps) {
+            for (CalendarComponent subcomp :  subcomps) {
                 componentToUTC(subcomp);
             }
         }
     }
 
-    private void filterProperties(PropertyList properties,
-                                  StringBuffer buffer) {
+    private void filterProperties(PropertyList<Property> properties,
+                                  StringBuilder buffer) {
         if (isAllProperties()) {
             buffer.append(properties.toString());
             return;
@@ -347,7 +348,7 @@ public class OutputFilter {
             return;
         }
 
-        for (Property property : (List<Property>) properties) {
+        for (Property property : properties) {
             PropertyMatch pm = testPropertyValue(property.getName());
             if (pm.isMatch()) {
                 if (pm.isValueExcluded()) {
@@ -365,7 +366,7 @@ public class OutputFilter {
      * @param property The property.
      * @param buffer The string buffer.
      */
-    private void chompPropertyValue(Property property, StringBuffer buffer) {
+    private void chompPropertyValue(Property property, StringBuilder buffer) {
         buffer.append(property.getName()).
             append(property.getParameters()).
             append(':').
@@ -377,8 +378,8 @@ public class OutputFilter {
      * @param subComponents The component list.
      * @param buffer The string buffer.
      */ 
-    private void filterSubComponents(ComponentList subComponents,
-                                     StringBuffer buffer) {
+    private void filterSubComponents(ComponentList<?> subComponents,
+                                     StringBuilder buffer) {
         if (isAllSubComponents() && getLimit() != null) {
             buffer.append(subComponents.toString());
             return;
@@ -388,7 +389,7 @@ public class OutputFilter {
             return;
         }
 
-        for (Component component : (List<Component>) subComponents) {
+        for (Component component : subComponents) {
             if (getLimit() != null && component instanceof VEvent &&
                     ! includeOverride((VEvent) component)) {
                 continue;
@@ -466,9 +467,9 @@ public class OutputFilter {
     /**
      * Filter sub component.
      * @param subComponent The component list.
-     * @param buffer The stringbuffer.
+     * @param buffer The StringBuilder.
      */
-    private void filterSubComponent(Component subComponent, StringBuffer buffer) {
+    private void filterSubComponent(Component subComponent, StringBuilder buffer) {
         buffer.append(Component.BEGIN).
             append(':').
             append(subComponent.getName()).
@@ -561,7 +562,7 @@ public class OutputFilter {
      */
     public void addSubComponent(OutputFilter filter) {
         if (subComponents == null) {
-            subComponents = new HashMap();
+            subComponents = new HashMap<>();
         }
         subComponents.put(filter.getComponentName().toUpperCase(CosmoConstants.LANGUAGE_LOCALE), filter);
     }

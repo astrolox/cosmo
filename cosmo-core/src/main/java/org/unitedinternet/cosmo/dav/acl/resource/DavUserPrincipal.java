@@ -18,7 +18,7 @@ package org.unitedinternet.cosmo.dav.acl.resource;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -26,9 +26,6 @@ import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
 
 import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.jackrabbit.server.io.IOUtil;
 import org.apache.jackrabbit.webdav.DavResourceIterator;
 import org.apache.jackrabbit.webdav.DavResourceIteratorImpl;
 import org.apache.jackrabbit.webdav.io.InputContext;
@@ -37,6 +34,8 @@ import org.apache.jackrabbit.webdav.property.DavPropertyIterator;
 import org.apache.jackrabbit.webdav.property.DavPropertyName;
 import org.apache.jackrabbit.webdav.property.DavPropertySet;
 import org.apache.jackrabbit.webdav.version.report.ReportType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.unitedinternet.cosmo.CosmoException;
 import org.unitedinternet.cosmo.dav.CosmoDavException;
 import org.unitedinternet.cosmo.dav.DavCollection;
@@ -67,6 +66,9 @@ import org.unitedinternet.cosmo.dav.property.LastModified;
 import org.unitedinternet.cosmo.dav.property.ResourceType;
 import org.unitedinternet.cosmo.dav.property.WebDavProperty;
 import org.unitedinternet.cosmo.model.User;
+import org.unitedinternet.cosmo.model.UserIdentity;
+import org.unitedinternet.cosmo.model.UserIdentitySupplier;
+import org.unitedinternet.cosmo.util.ContentTypeUtil;
 import org.unitedinternet.cosmo.util.DomWriter;
 import org.w3c.dom.Element;
 
@@ -81,7 +83,9 @@ import org.w3c.dom.Element;
  * @see User
  */
 public class DavUserPrincipal extends DavResourceBase implements CaldavConstants, DavContent {
-    private static final Log LOG = LogFactory.getLog(DavUserPrincipal.class);    
+    
+    private static final Logger LOG = LoggerFactory.getLogger(DavUserPrincipal.class);    
+    
     private static final Set<ReportType> REPORT_TYPES =
         new HashSet<ReportType>();
 
@@ -106,14 +110,17 @@ public class DavUserPrincipal extends DavResourceBase implements CaldavConstants
     private User user;
     private DavUserPrincipalCollection parent;
     private DavAcl acl;
+    private UserIdentitySupplier userIdentitySupplier;
 
     public DavUserPrincipal(User user,
                             DavResourceLocator locator,
-                            DavResourceFactory factory)
+                            DavResourceFactory factory,
+                            UserIdentitySupplier userIdentitySupplier)
         throws CosmoDavException {
         super(locator, factory);
         this.user = user;
         this.acl = makeAcl();
+        this.userIdentitySupplier = userIdentitySupplier;
     }
 
 
@@ -136,9 +143,10 @@ public class DavUserPrincipal extends DavResourceBase implements CaldavConstants
     }
 
     public String getDisplayName() {
-        String firstName = user.getFirstName();
-        String lastName = user.getLastName();
-        String email = user.getEmail();
+    	UserIdentity userIdentity = userIdentitySupplier.forUser(user);
+        String firstName = userIdentity.getFirstName();
+        String lastName = userIdentity.getLastName();
+        String email = userIdentity.getEmails().isEmpty() ? "" : userIdentity.getEmails().iterator().next();
         
         String toReturn = null;
         
@@ -169,13 +177,13 @@ public class DavUserPrincipal extends DavResourceBase implements CaldavConstants
         throw new UnsupportedOperationException();
     }
 
-    @SuppressWarnings("unchecked")
     public DavResourceIterator getMembers() {
-        // while it would be ideal to throw an UnsupportedOperationException,
-        // MultiStatus tries to add a MultiStatusResponse for every member
-        // of a WebDavResource regardless of whether or not it's a collection,
-        // so we need to return an empty iterator.
-        return new DavResourceIteratorImpl(new ArrayList());
+        /*
+         * While it would be ideal to throw an UnsupportedOperationException, MultiStatus tries to add a
+         * MultiStatusResponse for every member of a WebDavResource regardless of whether or not it's a collection, so
+         * we need to return an empty iterator.
+         */
+        return new DavResourceIteratorImpl(Collections.emptyList());
     }
 
     public void removeMember(org.apache.jackrabbit.webdav.DavResource member)
@@ -313,7 +321,7 @@ public class DavUserPrincipal extends DavResourceBase implements CaldavConstants
         
         // for now scheduling is an option
         if(isSchedulingEnabled()) {
-            properties.add(new CalendarUserAddressSet(user));
+            properties.add(new CalendarUserAddressSet(user, userIdentitySupplier));
             properties.add(new ScheduleInboxURL(getResourceLocator(), user));
             properties.add(new ScheduleOutboxURL(getResourceLocator(), user));
         }
@@ -349,11 +357,10 @@ public class DavUserPrincipal extends DavResourceBase implements CaldavConstants
     private void writeHtmlRepresentation(OutputContext context)
         throws CosmoDavException, IOException {
         if (LOG.isDebugEnabled()) {
-            LOG.debug("writing html representation for user principal " +
-                      getDisplayName());
+            LOG.debug("Writing html representation for user principal {}", getDisplayName());
         }
 
-        context.setContentType(IOUtil.buildContentType("text/html", "UTF-8"));
+        context.setContentType(ContentTypeUtil.buildContentType("text/html", "UTF-8"));
         context.setModificationTime(getModificationTime());
         context.setETag(getETag());
 
@@ -383,7 +390,7 @@ public class DavUserPrincipal extends DavResourceBase implements CaldavConstants
                     try {
                         text = DomWriter.write((Element)value);
                     } catch (XMLStreamException e) {
-                        LOG.warn("Error serializing value for property " + prop.getName());
+                        LOG.warn("Error serializing value for property {}", prop.getName());
                     }
                 }
                 if (text == null) {

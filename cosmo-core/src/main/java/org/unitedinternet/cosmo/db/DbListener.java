@@ -15,54 +15,61 @@
  */
 package org.unitedinternet.cosmo.db;
 
+import java.util.List;
+
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
+import org.unitedinternet.cosmo.servlet.ServletContextListenerDelegate;
 
 /**
- * A <code>ServletContextListener</code> that performs maintenance
- * tasks on the Cosmo database when the application starts up and
- * shuts down.
+ * A <code>ServletContextListener</code> that performs maintenance tasks on the Cosmo database when the application
+ * starts up and shuts down.
  *
- * This class simply hooks into the servlet context lifecycle. It
- * delegates the real database work to a series of helper classes.
+ * This class simply hooks into the servlet context lifecycle. It delegates the real database work to a series of helper
+ * classes.
  *
- * Typical maintenance tasks include schema creation, schema migration
- * and population of seed data.
+ * Typical maintenance tasks include schema creation, schema migration and population of seed data.
  *
  * @see ServletContextListener
- * @see DbInitializer
  */
 
 public class DbListener implements ServletContextListener {
-    @SuppressWarnings("unused")
-    private static final Log LOG = LogFactory.getLog(DbListener.class);
+
     private static final String BEAN_DB_INITIALIZER = "dbInitializer";
+    private static final String DELEGATES_BEAN_NAME = "servletContextListenersDelegate";
+
+    private List<ServletContextListenerDelegate> delegates;
 
     /**
-     * Resolves dependencies using the Spring
-     * <code>WebApplicationContext</code> and performs startup
-     * maintenance tasks.
+     * Resolves dependencies using the Spring <code>WebApplicationContext</code> and performs startup maintenance tasks.
      */
+    @SuppressWarnings("unchecked")
     public void contextInitialized(ServletContextEvent sce) {
         ServletContext sc = sce.getServletContext();
-        WebApplicationContext wac =
-            WebApplicationContextUtils.getRequiredWebApplicationContext(sc);
+        WebApplicationContext wac = WebApplicationContextUtils.getRequiredWebApplicationContext(sc);
 
-        DbInitializer initializer = (DbInitializer)
-            wac.getBean(BEAN_DB_INITIALIZER, DbInitializer.class);
+        DbInitializer initializer = beanForName(BEAN_DB_INITIALIZER, wac, DbInitializer.class);
+
         initializer.initialize();
+
+        delegates = beanForName(DELEGATES_BEAN_NAME, wac, List.class);
+
+        for (ServletContextListenerDelegate delegate : delegates) {
+            delegate.contextInitialized(sce);
+        }
     }
 
-    /**
-     * Does nothing.
-     */
+    private <T> T beanForName(String beanName, WebApplicationContext wac, Class<T> clazz) {
+        return (T) wac.getBean(beanName, clazz);
+    }
+
     public void contextDestroyed(ServletContextEvent sce) {
+        for (ServletContextListenerDelegate delegate : delegates) {
+            delegate.contextDestroyed(sce);
+        }
     }
 }

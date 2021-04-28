@@ -20,19 +20,19 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import net.fortuna.ical4j.model.Calendar;
-import net.fortuna.ical4j.model.Component;
-import net.fortuna.ical4j.model.component.VTimeZone;
-
 import org.apache.commons.lang.builder.ToStringBuilder;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.jackrabbit.webdav.xml.DomUtil;
 import org.apache.jackrabbit.webdav.xml.ElementIterator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.unitedinternet.cosmo.calendar.util.CalendarUtils;
 import org.unitedinternet.cosmo.dav.caldav.CaldavConstants;
 import org.unitedinternet.cosmo.icalendar.ICalendarConstants;
 import org.w3c.dom.Element;
+
+import net.fortuna.ical4j.model.Calendar;
+import net.fortuna.ical4j.model.Component;
+import net.fortuna.ical4j.model.component.VTimeZone;
 
 /**
  * Represents a component filter as defined in the CalDAV spec:
@@ -54,20 +54,17 @@ import org.w3c.dom.Element;
  */
 public class ComponentFilter implements CaldavConstants, ICalendarConstants {
 
-    /**
-     * Logger for this instance.
-     */
-    private static final Log LOG = LogFactory.getLog(ComponentFilter.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ComponentFilter.class);
 
     /**
      * Component filters container.
      */
-    private List componentFilters = new ArrayList();
+    private List<ComponentFilter> componentFilters = new ArrayList<>();
 
     /**
      * Prop filters container.
      */
-    private List propFilters = new ArrayList();
+    private List<PropertyFilter> propFilters = new ArrayList<>();
 
     /**
      * The the CALDAV:is-not-defined element for this filter.
@@ -344,7 +341,7 @@ public class ComponentFilter implements CaldavConstants, ICalendarConstants {
      * Gets component filter.
      * @return The component filter.
      */
-    public List getComponentFilters() {
+    public List<ComponentFilter> getComponentFilters() {
         return componentFilters;
     }
 
@@ -352,7 +349,7 @@ public class ComponentFilter implements CaldavConstants, ICalendarConstants {
      * Sets component filter.
      * @param componentFilters The component filter.
      */
-    public void setComponentFilters(List componentFilters) {
+    public void setComponentFilters(List<ComponentFilter> componentFilters) {
         this.componentFilters = componentFilters;
     }
 
@@ -376,7 +373,7 @@ public class ComponentFilter implements CaldavConstants, ICalendarConstants {
      * Gets prop filters.
      * @return The prop filters.
      */
-    public List getPropFilters() {
+    public List<PropertyFilter> getPropFilters() {
         return propFilters;
     }
 
@@ -384,7 +381,7 @@ public class ComponentFilter implements CaldavConstants, ICalendarConstants {
      * Sets prop filters.
      * @param propFilters The prop filters.
      */
-    public void setPropFilters(List propFilters) {
+    public void setPropFilters(List<PropertyFilter> propFilters) {
         this.propFilters = propFilters;
     }
 

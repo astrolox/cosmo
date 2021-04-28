@@ -15,6 +15,8 @@
  */
 package org.unitedinternet.cosmo.model.hibernate;
 
+import java.io.Serializable;
+
 import javax.persistence.Embeddable;
 
 import org.apache.commons.lang.builder.EqualsBuilder;
@@ -24,8 +26,9 @@ import org.unitedinternet.cosmo.model.QName;
 /**
  * Hibernate persistent QName.
  */
+@SuppressWarnings("serial")
 @Embeddable
-public class HibQName implements QName {
+public class HibQName implements QName,Serializable {
     
     public static final String DEFAULT_NAMESPACE = "org.unitedinternet.cosmo.default";
     
@@ -50,7 +53,7 @@ public class HibQName implements QName {
      * @param clazz class to generate namespace from
      * @param localName local name
      */
-    public HibQName(Class clazz, String localName) {
+    public HibQName(Class<?> clazz, String localName) {
         this(clazz.getName(), localName);
     }
     
@@ -115,7 +118,7 @@ public class HibQName implements QName {
 
     /** */
     public String toString() {
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         buf.append("{").
             append(namespace).
             append("}").

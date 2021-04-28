@@ -19,8 +19,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.unitedinternet.cosmo.CosmoException;
 import org.unitedinternet.cosmo.util.PathUtil;
 
@@ -30,8 +28,7 @@ import org.unitedinternet.cosmo.util.PathUtil;
  * @see DavResourceLocator
  */
 public class StandardResourceLocator implements DavResourceLocator {
-    @SuppressWarnings("unused")
-    private static final Log LOG = LogFactory.getLog(StandardResourceLocator.class);
+    
 
     private URL context;
     private String path;

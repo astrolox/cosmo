@@ -26,20 +26,23 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.unitedinternet.cosmo.server.ServerUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.unitedinternet.cosmo.server.ServerUtils;
 
 /**
  * Servlet filter that populates the
  * {@link org.springframework.security.ContextHolder} with a
  * {@link TicketAuthenticationToken} if needed.
  */
+@Component
 public class TicketProcessingFilter implements Filter {
-    private static final Log LOG = LogFactory.getLog(TicketProcessingFilter.class);
+    
+    private static final Logger LOG = LoggerFactory.getLogger(TicketProcessingFilter.class);
 
     // Filter methods
 

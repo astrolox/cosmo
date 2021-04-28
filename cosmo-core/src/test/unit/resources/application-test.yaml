@@ -1,0 +1,67 @@
+cosmo:
+  tickets: 
+    serverSecret: b4da02a6-9a45-436f-89d8-20a285795314
+    serverInteger: 517340066    
+  caldav:   
+     schedulingEnabled: true
+  event:
+    validation:
+      allowed:
+        recurrence:
+          frequencies: DAILY,WEEKLY,MONTHLY,YEARLY,SECONDLY
+      summary:
+       min:
+        length: 0
+       max: 
+        length: 2137483647
+      location:
+       min:
+        length: 0
+       max: 
+        length: 2137483647
+      description:
+       min:
+        length: 0
+       max: 
+        length: 2137483647
+      attendees:
+         max:
+           length: 100   
+
+#Connection timeout for reaching external content when validation is performed (in millis) 
+external:
+  content:
+    connection:
+      timeout: 10000
+    size: 1048576
+    non:
+      proxyed:
+        hosts:  
+calendar: 
+  server:
+   productId: COSMO
+   
+server:
+  port: 8080
+  servlet:
+    context-path: /cosmo
+spring:
+  application:
+    name: cosmo-webapp
+  profiles:
+    active: local
+  datasource:
+    url: jdbc:mysql://localhost:33060/test?autoReconnect=true
+    username: root
+    password: 
+    driver-class-name: org.mariadb.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10     
+  jpa:        
+    properties:
+     hibernate.dialect: org.unitedinternet.cosmo.hibernate.CosmoMySQL5InnoDBDialect     
+     hibernate.cache.use_query_cache: false
+     hibernate.cache.use_second_level_cache: false
+     hibernate.show_sql: false
+     hibernate.hbm2ddl.auto: create
+     hibernate.id.new_generator_mappings: false

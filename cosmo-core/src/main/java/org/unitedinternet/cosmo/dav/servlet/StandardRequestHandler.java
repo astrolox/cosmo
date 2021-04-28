@@ -24,8 +24,11 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.ValidationException;
 
 import org.apache.abdera.util.EntityTag;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.stereotype.Component;
+import org.springframework.web.HttpRequestHandler;
 import org.unitedinternet.cosmo.CosmoException;
 import org.unitedinternet.cosmo.dav.CosmoDavException;
 import org.unitedinternet.cosmo.dav.DavCollection;
@@ -65,8 +68,6 @@ import org.unitedinternet.cosmo.security.CosmoSecurityException;
 import org.unitedinternet.cosmo.security.ItemSecurityException;
 import org.unitedinternet.cosmo.security.Permission;
 import org.unitedinternet.cosmo.server.ServerConstants;
-import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.web.HttpRequestHandler;
 
 /**
  * <p>
@@ -77,15 +78,23 @@ import org.springframework.web.HttpRequestHandler;
  * method based on the request method.
  * </p>
  */
-public class StandardRequestHandler
-    implements HttpRequestHandler, ServerConstants {
-    private static final Log LOG =
-        LogFactory.getLog(StandardRequestHandler.class);
+@Component("davRequestHandler")
+public class StandardRequestHandler implements HttpRequestHandler, ServerConstants {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(StandardRequestHandler.class);
 
     private DavResourceLocatorFactory locatorFactory;
+    
     private DavResourceFactory resourceFactory;
+    
     private EntityFactory entityFactory;
     // RequestHandler methods
+    
+    public StandardRequestHandler(DavResourceLocatorFactory locatorFactory, DavResourceFactory resourceFactory, EntityFactory entityFactory) {
+    	this.locatorFactory = locatorFactory;
+    	this.resourceFactory = resourceFactory;
+    	this.entityFactory = entityFactory;
+    }
                
     /**
      * <p>
@@ -171,7 +180,7 @@ public class StandardRequestHandler
             return;
         }
 
-        StringBuffer sb = new StringBuffer("\n------------------------ Dump of request -------------------\n");
+        StringBuilder sb = new StringBuilder("\n------------------------ Dump of request -------------------\n");
         try {
             Enumeration<String> names = req.getHeaderNames();
 
@@ -210,7 +219,7 @@ public class StandardRequestHandler
                 sb.append("  ").append(key).append(" = \"").append(val).append("\"").append("\n");
             }
         } catch (Exception e) {
-            LOG.error("Error on dumpRequest class StandardRequestHandler "+ e);
+            LOG.error("Error on dumpRequest class StandardRequestHandler ", e);
         }
         sb.append("------------------------ End dump of request -------------------");
         //Fix Log Forging - java fortify

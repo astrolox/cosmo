@@ -8,15 +8,15 @@
 	express or implied. See the License for the specific language governing permissions 
 	and limitations under the License. -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<parent>
-		<groupId>org.unitedinternet.cosmo</groupId>
+		<groupId>net.oneandone.cosmo</groupId>
 		<artifactId>cosmo-multimodule</artifactId>
-		<version>0.9-SNAPSHOT</version>
+		<version>3.7.10-SNAPSHOT</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
-	<artifactId>cosmo-core</artifactId>
+	<artifactId>cosmo-core</artifactId>	
+
 
 	<properties>
 		<maven-compiler-plugin.version>2.3.2</maven-compiler-plugin.version>
@@ -24,24 +24,33 @@
 		<maven-eclipse-plugin.version>2.8</maven-eclipse-plugin.version>
 		<maven-clean-plugin.version>2.1.1</maven-clean-plugin.version>
 		<maven-war-plugin.version>2.2</maven-war-plugin.version>
-		<maven-assembly-plugin.version>2.2.2</maven-assembly-plugin.version>
-		<findbugs.suppressions.config.file>findbugs-suppressions.xml</findbugs.suppressions.config.file>
+		<maven-assembly-plugin.version>2.2.2</maven-assembly-plugin.version>		
 		<maven-pmd-plugin.failOnViolation>false</maven-pmd-plugin.failOnViolation>
-
-		<jacoco.check.complexityRatio>0.34</jacoco.check.complexityRatio>
-		<jacoco.check.branchRatio>0.35</jacoco.check.branchRatio>
-		<jacoco.check.methodRatio>0.48</jacoco.check.methodRatio>
-		<jacoco.check.lineRatio>0.43</jacoco.check.lineRatio>
-		<jacoco.check.instructionRatio>0.42</jacoco.check.instructionRatio>
-		<jacoco.check.classRatio>0.66</jacoco.check.classRatio>
-
 
 	</properties>
 
+
 	<dependencies>
+
 		<dependency>
-			<groupId>org.unitedinternet.cosmo</groupId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>net.oneandone.cosmo</groupId>
 			<artifactId>cosmo-api</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 
 		<!-- Apache commons -->
@@ -58,7 +67,6 @@
 		<dependency>
 			<groupId>commons-codec</groupId>
 			<artifactId>commons-codec</artifactId>
-			<version>1.10</version>
 		</dependency>
 		
 
@@ -71,35 +79,31 @@
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-core</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>commons-logging</groupId>
-			<artifactId>commons-logging</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>commons-logging</groupId>
-			<artifactId>commons-logging-api</artifactId>
-			<version>1.1</version>
-		</dependency>
 		
 		<!-- XML processing -->
 		<dependency>
 			<groupId>xerces</groupId>
 			<artifactId>xercesImpl</artifactId>
 		</dependency>
-		<dependency>
+		<!-- <dependency>
 			<groupId>org.reflections</groupId>
 			<artifactId>reflections</artifactId>
-			<version>0.9.9</version>
-		</dependency>
+		</dependency> -->
 		<!-- Databases -->
 		<dependency>
-			<groupId>mysql</groupId>
-			<artifactId>mysql-connector-java</artifactId>
+			<groupId>org.mariadb.jdbc</groupId>
+			<artifactId>mariadb-java-client</artifactId>
+		</dependency>
+		
+		<dependency>
+				<groupId>ch.vorburger.mariaDB4j</groupId>
+				<artifactId>mariaDB4j-core</artifactId>
+				<scope>test</scope>				
 		</dependency>
 		<dependency>
-			<groupId>org.hsqldb</groupId>
-			<artifactId>hsqldb</artifactId>
-			<scope>test</scope>
+				<groupId>ch.vorburger.mariaDB4j</groupId>
+				<artifactId>mariaDB4j-app</artifactId>
+				<scope>test</scope>				
 		</dependency>
 
 		<!-- abdera is the ATOM implementation. This library is still used for 
@@ -128,35 +132,8 @@
 
 		<!-- ical4j related libs -->
 		<dependency>
-			<groupId>org.mnode.ical4j</groupId>
+			<groupId>net.oneandone.ical4j</groupId>
 			<artifactId>ical4j</artifactId>
-			<exclusions>
-				<exclusion>
-					<groupId>commons-codec</groupId>
-					<artifactId>commons-codec</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-
-		<!-- used in TimeZoneUtils to provide VTimezone around 10MB jar, check 
-			if we really need it -->
-		<dependency>
-			<groupId>com.ibm.icu</groupId>
-			<artifactId>icu4j</artifactId>
-		</dependency>
-
-		<!-- servlet -->
-		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>javax.servlet-api</artifactId>
-			<version>3.1.0</version>
-			<scope>provided</scope>
-		</dependency>
-
-		<!-- required by jcr-server -->
-		<dependency>
-			<groupId>org.apache.jackrabbit</groupId>
-			<artifactId>jackrabbit-jcr-server</artifactId>
 			<exclusions>
 				<exclusion>
 					<groupId>commons-codec</groupId>
@@ -181,51 +158,7 @@
 		</dependency>
 
 		<!-- Spring -->
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-beans</artifactId>
-			<version>4.1.4.RELEASE</version>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-context</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-expression</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-core</artifactId>
-			<version>4.1.4.RELEASE</version>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-tx</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-test</artifactId>
-			<version>4.1.4.RELEASE</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-web</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-orm</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-jdbc</artifactId>
-			<version>4.1.4.RELEASE</version>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-aop</artifactId>
-		</dependency>
+		
 		<dependency>
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-core</artifactId>
@@ -275,76 +208,28 @@
 			<groupId>org.aspectj</groupId>
 			<artifactId>aspectjweaver</artifactId>
 		</dependency>
-		<!-- aopalliance used internally by spring aop -->
-		<dependency>
-			<groupId>aopalliance</groupId>
-			<artifactId>aopalliance</artifactId>
-		</dependency>
-
+		
 		<!-- Hibernate -->
 		<dependency>
 			<groupId>org.hibernate</groupId>
 			<artifactId>hibernate-core</artifactId>
-			<exclusions>
-				<exclusion>
-					<groupId>org.javassist</groupId>
-					<artifactId>javassist</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
+		
 		<dependency>
-			<groupId>org.hibernate.javax.persistence</groupId>
-			<artifactId>hibernate-jpa-2.1-api</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.hibernate</groupId>
+			<groupId>org.hibernate.validator</groupId>
 			<artifactId>hibernate-validator</artifactId>
 		</dependency>
+		
 		<dependency>
-			<groupId>javax.validation</groupId>
-			<artifactId>validation-api</artifactId>
-			<version>${validation-api.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>javax.el</groupId>
-			<artifactId>javax.el-api</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.glassfish.web</groupId>
-			<artifactId>javax.el</artifactId>
+				<groupId>org.apache.httpcomponents</groupId>
+				<artifactId>httpclient</artifactId>				
 		</dependency>
 
-		<!-- test -->
+		<!-- Test -->
 		<dependency>
 			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<exclusions>
-			 <exclusion>
-			     <groupId>org.hamcrest</groupId>
-			     <artifactId>hamcrest-core</artifactId>
-			 </exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-core</artifactId>
-			<exclusions>
-             <exclusion>
-                 <groupId>org.hamcrest</groupId>
-                 <artifactId>hamcrest-core</artifactId>
-             </exclusion>
-            </exclusions>
-		</dependency>
-		<dependency>
-			<groupId>org.hamcrest</groupId>
-			<artifactId>hamcrest-all</artifactId>
-		</dependency>
-		<dependency>
-            <groupId>commons-dbcp</groupId>
-            <artifactId>commons-dbcp</artifactId>
-            <version>1.4</version>
-            <scope>test</scope>
-        </dependency>
+			<artifactId>junit</artifactId>			
+		</dependency>				
 	</dependencies>
 
 	<build>
@@ -362,6 +247,7 @@
 					<include>logback.xml</include>
 					<include>etc/cosmo.properties</include>
 					<include>applicationContext-*.xml</include>
+					<include>application-*.yaml</include>
 				</includes>
 			</testResource>
 			<testResource>
@@ -380,131 +266,6 @@
 				<directory>src/test/unit/resources/testdata</directory>
 			</testResource>
 		</testResources>
-		<pluginManagement>
-			<plugins>
-				<plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-compiler-plugin</artifactId>
-					<version>${maven-compiler-plugin.version}</version>
-					<inherited>true</inherited>
-					<configuration>
-						<encoding>UTF-8</encoding>
-						<source>1.7</source>
-						<target>1.7</target>
-					</configuration>
-				</plugin>
-				<plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-surefire-plugin</artifactId>
-					<version>2.17</version>
-					<dependencies>
-						<dependency>
-							<groupId>org.apache.maven.surefire</groupId>
-							<artifactId>surefire-junit47</artifactId>
-							<version>2.17</version>
-						</dependency>
-					</dependencies>
-				</plugin>
-				<plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-resources-plugin</artifactId>
-					<version>${maven-resources-plugin.version}</version>
-					<configuration>
-						<encoding>UTF-8</encoding>
-					</configuration>
-				</plugin>
-				<plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-eclipse-plugin</artifactId>
-					<version>${maven-eclipse-plugin.version}</version>
-					<configuration>
-						<downloadSources>true</downloadSources>
-					</configuration>
-				</plugin>
-				<plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-clean-plugin</artifactId>
-					<version>${maven-clean-plugin.version}</version>
-					<!-- This configuration is added to cleanup from war:inplace -->
-					<configuration>
-						<filesets>
-							<fileset>
-								<directory>${basedir}/</directory>
-								<includes>
-									<include>derby.log</include>
-									<include>db</include>
-								</includes>
-							</fileset>
-							<fileset>
-								<directory>${basedir}/src/main/webapp</directory>
-								<includes>
-									<!-- TODO: META-INF shouldn't be required, seems to be an issue 
-										with the current war plugin -->
-									<include>META-INF</include>
-									<include>WEB-INF/classes</include>
-									<include>js/*</include>
-									<!-- Classes and Resources from other wars -->
-									<include>WEB-INF/lib</include>
-									<!-- Dependencies from other wars -->
-									<include>WEB-INF/database</include>
-									<!-- Database location configured in application.xml -->
-									<include>WEB-INF/logs</include>
-									<!-- Log file location specified in application.xml -->
-									<include>pss</include>
-									<!-- plexus-security css and javascript -->
-									<include>WEB-INF/jsp/pss</include>
-									<!-- plexus-security jsps -->
-									<include>WEB-INF/template/pss</include>
-									<!-- plexus-security xwork templates -->
-								</includes>
-							</fileset>
-						</filesets>
-					</configuration>
-				</plugin>
-
-				<plugin>
-					<groupId>org.codehaus.mojo</groupId>
-					<artifactId>findbugs-maven-plugin</artifactId>
-					<version>3.0.0</version>
-					<executions>
-						<execution>
-							<id>default-check</id>
-							<goals>
-								<goal>check</goal>
-							</goals>
-							<inherited>true</inherited>
-							<configuration>
-								<failOnError>true</failOnError>
-								<excludeFilterFile>${findbugs.suppressions.config.file}</excludeFilterFile>
-								<xmlOutput>true</xmlOutput>
-								<effort>Max</effort>
-							</configuration>
-						</execution>
-					</executions>
-					<inherited>true</inherited>
-					<configuration>
-						<excludeFilterFile>${findbugs.suppressions.config.file}</excludeFilterFile>
-						<xmlOutput>true</xmlOutput>
-						<effort>Max</effort>
-					</configuration>
-				</plugin>
-
-			</plugins>
-		</pluginManagement>
-	</build>
-	<reporting>
-		<plugins>
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>findbugs-maven-plugin</artifactId>
-				<configuration>
-					<excludeFilterFile>findbugs-suppressions.xml</excludeFilterFile>
-				</configuration>
-			</plugin>
-		</plugins>
-	</reporting>
-
-	<scm>
-		<developerConnection>scm:git:ssh://git@github.com/1and1/cosmo/</developerConnection>
-	</scm>
+		
+	</build>	
 </project>

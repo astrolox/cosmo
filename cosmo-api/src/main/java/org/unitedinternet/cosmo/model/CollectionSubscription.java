@@ -16,44 +16,47 @@
 package org.unitedinternet.cosmo.model;
 
 /**
- * Represents a subscription to a shared collection.
- * A subscription belongs to a user and consists of 
- * a ticket key and a collection uid.
+ * Models a collection subscription between a sharer and a sharee.
+ * 
+ * @author daniel grigore
  */
-public interface CollectionSubscription extends AuditableObject{
+public interface CollectionSubscription extends AuditableObject {
 
     /**
-     * Return the uid of the shared collection.  
-     * Note, it is possible that the Collection with this uid is not
-     * present in the system.  This will happen if a collection is 
-     * shared and then the owner deletes the collection.
-     * @return Collection uid
+     * Gets the collection item shared by sharer.
+     * 
+     * @return the collection item shared by sharer
      */
-    public String getCollectionUid();
+    public CollectionItem getTargetCollection();
 
-    public void setCollectionUid(String collectionUid);
+    public void setTargetCollection(CollectionItem targetCollection);
 
-    public void setCollection(CollectionItem collection);
-
-    public String getDisplayName();
-
-    public void setDisplayName(String displayName);
-
+    /**
+     * Gets the owner of this subscription (sharee).
+     * 
+     * @return the owner of this subscription (sharee).
+     */
     public User getOwner();
 
     public void setOwner(User owner);
 
     /**
-     * Return the ticket key used to subscribe to the shared collection.
-     * Note, it is possible that the Ticket represented by this key
-     * is not present in the system.  This happens when a ticket is
-     * created for a shared collection, and then removed by the owner.
-     * @return
+     * Gets the ticket set for this subscription based on which sharee privileges will be calculated.
+     * 
+     * @return the ticket set for this subscription.
      */
-    public String getTicketKey();
-
-    public void setTicketKey(String ticketKey);
+    public Ticket getTicket();
 
     public void setTicket(Ticket ticket);
+
+    /**
+     * Gets the sharee collection of this subscription. The sharee collection can be <code>null</code> if sharee did not
+     * accepted the share request.
+     * 
+     * @return the sharee collection of this subscription
+     */
+    public CollectionItem getProxyCollection();
+
+    public void setProxyCollection(CollectionItem proxyCollection);
 
 }

@@ -21,9 +21,8 @@ import java.util.Set;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
 import org.unitedinternet.cosmo.TestHelper;
-import org.unitedinternet.cosmo.dao.mock.MockCalendarDao;
 import org.unitedinternet.cosmo.dao.mock.MockContentDao;
 import org.unitedinternet.cosmo.dao.mock.MockDaoStorage;
 import org.unitedinternet.cosmo.dao.mock.MockUserDao;
@@ -42,23 +41,16 @@ import org.unitedinternet.cosmo.service.ContentService;
 import org.unitedinternet.cosmo.service.impl.StandardContentService;
 import org.unitedinternet.cosmo.service.impl.StandardTriageStatusQueryProcessor;
 import org.unitedinternet.cosmo.service.lock.SingleVMLockManager;
-import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
  * Test Case for <code>SecurityAdvice/code>
  * This test doesn't check secured flag. See SecurityAdviceConcurrencyTest for that test.
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations={
-        "classpath:applicationContext-SecurityAdviceConcurrencyTest.xml"})
+
 public class SecurityAdviceTest {
 
     
     private StandardContentService service;
-    private MockCalendarDao calendarDao;
     private MockContentDao contentDao;
     private MockUserDao userDao;
     private MockDaoStorage storage;
@@ -66,7 +58,7 @@ public class SecurityAdviceTest {
     private TestHelper testHelper;
     private ContentService proxyService;
     private MockSecurityManager securityManager;
-    @Autowired
+    
     private SecurityAdvice sa;
 
     /**
@@ -74,30 +66,19 @@ public class SecurityAdviceTest {
      * @throws Exception - if something is wrong this exception is thrown.
      */
     @Before
-    public void setUp() throws Exception {
+    public void setUp()  {       
         testHelper = new TestHelper();
         securityManager = new MockSecurityManager();
-        storage = new MockDaoStorage();
-        calendarDao = new MockCalendarDao(storage);
+        storage = new MockDaoStorage();        
         contentDao = new MockContentDao(storage);
         userDao = new MockUserDao(storage);
-        service = new StandardContentService();
+        this.sa = new SecurityAdvice(securityManager, contentDao, userDao);
         lockManager = new SingleVMLockManager();
-        service.setContentDao(contentDao);
-        service.setLockManager(lockManager);
-        service.setTriageStatusQueryProcessor(new StandardTriageStatusQueryProcessor());
-        service.init();
+        service = new StandardContentService(contentDao, lockManager, new StandardTriageStatusQueryProcessor());
         
         // create a factory that can generate a proxy for the given target object
         AspectJProxyFactory factory = new AspectJProxyFactory(service); 
-
-        sa.setEnabled(true);
-        sa.setSecurityManager(securityManager);
-        sa.setContentDao(contentDao);
-        sa.setUserDao(userDao);
-        //this bean has request scope
-        //sa.setSecuredMethod(Proxy) should be called by Spring
-        sa.init();
+        
         factory.addAspect(sa);
 
         // now get the proxy object...

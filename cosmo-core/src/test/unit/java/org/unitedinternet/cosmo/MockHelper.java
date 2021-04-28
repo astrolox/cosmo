@@ -19,6 +19,7 @@ import java.security.SecureRandom;
 
 import org.junit.After;
 import org.junit.Before;
+import org.springframework.security.core.token.KeyBasedPersistenceTokenService;
 import org.unitedinternet.cosmo.calendar.query.CalendarQueryProcessor;
 import org.unitedinternet.cosmo.calendar.query.impl.StandardCalendarQueryProcessor;
 import org.unitedinternet.cosmo.dao.mock.MockCalendarDao;
@@ -35,6 +36,9 @@ import org.unitedinternet.cosmo.model.NoteItem;
 import org.unitedinternet.cosmo.model.Preference;
 import org.unitedinternet.cosmo.model.Ticket;
 import org.unitedinternet.cosmo.model.User;
+import org.unitedinternet.cosmo.model.UserIdentitySupplier;
+import org.unitedinternet.cosmo.model.UserIdentitySupplierDefault;
+import org.unitedinternet.cosmo.model.hibernate.EntityConverter;
 import org.unitedinternet.cosmo.model.mock.MockEntityFactory;
 import org.unitedinternet.cosmo.security.CosmoSecurityManager;
 import org.unitedinternet.cosmo.security.mock.MockSecurityManager;
@@ -47,7 +51,6 @@ import org.unitedinternet.cosmo.service.impl.StandardContentService;
 import org.unitedinternet.cosmo.service.impl.StandardTriageStatusQueryProcessor;
 import org.unitedinternet.cosmo.service.impl.StandardUserService;
 import org.unitedinternet.cosmo.service.lock.SingleVMLockManager;
-import org.springframework.security.core.token.KeyBasedPersistenceTokenService;
 
 /**
  */
@@ -55,12 +58,14 @@ public class MockHelper extends TestHelper {
     private MockEntityFactory entityFactory;
     private MockSecurityManager securityManager;
     private ServiceLocatorFactory serviceLocatorFactory;
+    private SingleVMLockManager lockManager; 
     private StandardContentService contentService;
     private StandardUserService userService;
     private ICalendarClientFilterManager clientFilterManager;
     private StandardCalendarQueryProcessor calendarQueryProcessor;
     private User user;
     private HomeCollectionItem homeCollection;
+    private UserIdentitySupplier userIdentitySupplier = new UserIdentitySupplierDefault();
     
     /**
      * Constructor.
@@ -80,20 +85,15 @@ public class MockHelper extends TestHelper {
         MockCalendarDao calendarDao = new MockCalendarDao(storage);
         MockContentDao contentDao = new MockContentDao(storage);
         MockUserDao userDao = new MockUserDao(storage);
-        SingleVMLockManager lockManager = new SingleVMLockManager();
+        lockManager = new SingleVMLockManager();
         
         entityFactory = new MockEntityFactory();
         
-        contentService = new StandardContentService();
-        contentService.setContentDao(contentDao);
-        contentService.setLockManager(lockManager);
-        contentService.setTriageStatusQueryProcessor(new StandardTriageStatusQueryProcessor());
-        
-        contentService.init();
+        contentService = new StandardContentService(contentDao, lockManager, new StandardTriageStatusQueryProcessor());        
 
         clientFilterManager = new ICalendarClientFilterManager();
         
-        calendarQueryProcessor = new StandardCalendarQueryProcessor();
+        calendarQueryProcessor = new StandardCalendarQueryProcessor(new EntityConverter(entityFactory), contentDao, calendarDao);
         calendarQueryProcessor.setCalendarDao(calendarDao);
         
         userService = new StandardUserService();
@@ -263,7 +263,7 @@ public class MockHelper extends TestHelper {
      * @param collection The collection.
      */
     public void lockCollection(CollectionItem collection) {
-        contentService.getLockManager().lockCollection(collection);
+        lockManager.lockCollection(collection);
     }
 
     /**
@@ -358,7 +358,6 @@ public class MockHelper extends TestHelper {
     public CollectionSubscription makeAndStoreDummySubscription(CollectionItem collection, Ticket ticket)
                                                                  throws Exception {
         CollectionSubscription sub = makeDummySubscription(collection, ticket);
-        user.addSubscription(sub);
         userService.updateUser(user);
         return sub;
     }
@@ -392,18 +391,13 @@ public class MockHelper extends TestHelper {
      */
     public CollectionItem findCollection(String uid) {
         return (CollectionItem) contentService.findItemByUid(uid);
-    }
-
-    /**
-     * Finds subscription.
-     * @param displayName Display name parameter.
-     * @return The collection subscription.
-     */
-    public CollectionSubscription findSubscription(String displayName) {
-        return user.getSubscription(displayName);
-    }
+    }    
 
     public ICalendarClientFilterManager getClientFilterManager() {
         return clientFilterManager;
+    }
+    
+    public UserIdentitySupplier getUserIdentitySupplier(){
+    	return userIdentitySupplier;
     }
 }

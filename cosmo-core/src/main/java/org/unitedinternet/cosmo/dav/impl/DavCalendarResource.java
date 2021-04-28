@@ -20,18 +20,14 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-import net.fortuna.ical4j.model.Calendar;
-import net.fortuna.ical4j.model.Period;
-import net.fortuna.ical4j.model.component.VFreeBusy;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.jackrabbit.server.io.IOUtil;
 import org.apache.jackrabbit.webdav.io.InputContext;
 import org.apache.jackrabbit.webdav.io.OutputContext;
 import org.apache.jackrabbit.webdav.property.DavPropertyName;
 import org.apache.jackrabbit.webdav.property.DavPropertySet;
 import org.apache.jackrabbit.webdav.version.report.ReportType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.FileCopyUtils;
 import org.unitedinternet.cosmo.CosmoException;
 import org.unitedinternet.cosmo.calendar.query.CalendarFilter;
 import org.unitedinternet.cosmo.dav.CosmoDavException;
@@ -53,13 +49,19 @@ import org.unitedinternet.cosmo.model.EntityFactory;
 import org.unitedinternet.cosmo.model.ICalendarItem;
 import org.unitedinternet.cosmo.model.IcalUidInUseException;
 import org.unitedinternet.cosmo.model.NoteItem;
+import org.unitedinternet.cosmo.util.ContentTypeUtil;
+
+import net.fortuna.ical4j.model.Calendar;
+import net.fortuna.ical4j.model.Period;
+import net.fortuna.ical4j.model.component.VFreeBusy;
 
 /**
  * Abstract calendar resource.
  */
-public abstract class DavCalendarResource extends DavContentBase
-    implements ICalendarConstants {
-    private static final Log LOG = LogFactory.getLog(DavCalendarResource.class);
+public abstract class DavCalendarResource extends DavContentBase implements ICalendarConstants {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(DavCalendarResource.class);
+    
     private static final Set<ReportType> REPORT_TYPES =
         new HashSet<ReportType>();
     
@@ -162,7 +164,7 @@ public abstract class DavCalendarResource extends DavContentBase
     private void validateDestination(org.apache.jackrabbit.webdav.DavResource destination)
         throws CosmoDavException {
         if (LOG.isDebugEnabled()) {
-            LOG.debug("validating destination " + destination.getResourcePath());
+            LOG.debug("Validating destination {}", destination.getResourcePath());
         }
 
         // XXX: we should allow items to be moved/copied out of
@@ -181,11 +183,11 @@ public abstract class DavCalendarResource extends DavContentBase
         }
 
         if (LOG.isDebugEnabled()) {
-            LOG.debug("spooling file " + getResourcePath());
+            LOG.debug("Spooling file {}", getResourcePath());
         }
 
         String contentType =
-            IOUtil.buildContentType(ICALENDAR_MEDIA_TYPE, "UTF-8");
+            ContentTypeUtil.buildContentType(ICALENDAR_MEDIA_TYPE, "UTF-8");
         outputContext.setContentType(contentType);
   
         // Get calendar
@@ -203,7 +205,7 @@ public abstract class DavCalendarResource extends DavContentBase
 
         // spool calendar bytes
         ByteArrayInputStream bois = new ByteArrayInputStream(calendarBytes);
-        IOUtil.spool(bois, outputContext.getOutputStream());
+        FileCopyUtils.copy(bois, outputContext.getOutputStream());
     }
 
     public Set<ReportType> getReportTypes() {

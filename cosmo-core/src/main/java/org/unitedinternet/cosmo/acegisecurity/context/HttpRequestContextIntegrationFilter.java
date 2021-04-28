@@ -24,8 +24,8 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -59,18 +59,18 @@ import org.springframework.security.core.context.SecurityContextImpl;
 public class HttpRequestContextIntegrationFilter
     implements InitializingBean, Filter {
     
-    private static final Log LOG = LogFactory.getLog(HttpRequestContextIntegrationFilter.class);
+    private static final Logger LOG = LoggerFactory.getLogger(HttpRequestContextIntegrationFilter.class);
         
     private static final String FILTER_APPLIED =
         "__acegi_request_integration_filter_applied";
 
-    private Class context = SecurityContextImpl.class;
+    private Class<?> context = SecurityContextImpl.class;
 
     /**
      * Sets context.
      * @param secureContext The secure context.
      */
-    public void setContext(Class secureContext) {
+    public void setContext(Class<?> secureContext) {
         this.context = secureContext;
     }
 
@@ -78,7 +78,7 @@ public class HttpRequestContextIntegrationFilter
      * Gets context.
      * @return The context.
      */
-    public Class getContext() {
+    public Class<?> getContext() {
         return context;
     }
 

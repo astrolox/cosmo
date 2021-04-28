@@ -15,12 +15,7 @@
  */
 package org.unitedinternet.cosmo.dao;
 
-import org.unitedinternet.cosmo.model.PagedList;
-import org.unitedinternet.cosmo.model.PasswordRecovery;
 import org.unitedinternet.cosmo.model.User;
-import org.unitedinternet.cosmo.model.filter.PageCriteria;
-
-import java.util.Set;
 
 /**
  * Interface for DAOs that manage user resources.
@@ -30,21 +25,6 @@ import java.util.Set;
  * directory").
  */
 public interface UserDao extends Dao {
-
-    /**
-     * Returns an unordered set of all user accounts in the repository.
-     * @return All user accounts.
-     */
-    public Set<User> getUsers();
-
-    /**
-     * Returns the sorted list of user accounts corresponding to the
-     * given <code>PageCriteria</code>.
-     *
-     * @param pageCriteria the pagination criteria
-     * @return The sorted list of the user accounts.
-     */
-    public PagedList getUsers(PageCriteria<User.SortType> pageCriteria);
 
     /**
      * Returns the user account identified by the given username.
@@ -66,14 +46,6 @@ public interface UserDao extends Dao {
     public User getUserByUid(String uid);
 
     /**
-     * Returns the user account identified by the given activation id.
-     *
-     * @param id the activation id corresponding to the account to return
-     * @return The user account identified by the given activation id.
-     */
-    public User getUserByActivationId(String id);
-
-    /**
      * Returns the user account identified by the given email address.
      *
      * @param email the email address of the account to return
@@ -81,15 +53,6 @@ public interface UserDao extends Dao {
      */
     public User getUserByEmail(String email);
     
-    /**
-     * Returns a set of users that contain a user preference that
-     * matches a specific key and value.
-     * @param key user preference key to match
-     * @param value user preference value to match
-     * @return set of users containing a user preference that matches
-     *         key and value
-     */
-    public Set<User> findUsersByPreference(String key, String value);
 
     /**
      * Creates a user account in the repository. Returns a new
@@ -126,27 +89,5 @@ public interface UserDao extends Dao {
      * @param user the user to remove
      */
     public void removeUser(User user);
-    
-    /**
-     * Creates a password recovery entity in the repository. Returns a new
-     * instance of <code>PasswordRecovery</code> after saving the original one.
-     *
-     * @param passwordRecovery the password recovery entity to save
-     */
-    public void createPasswordRecovery(PasswordRecovery passwordRecovery);
-    
-    /**
-     * Returns the password recovery entity identified by the given key.
-     * 
-     * @param key The given key.
-     * @return the passsword recovery entity identified by key
-     */
-    public PasswordRecovery getPasswordRecovery(String key);
-    
-    /**
-     * Delete <code>passwordRecovery</code> from the database.
-     * 
-     * @param passwordRecovery the password recovery entity to delete
-     */
-    public void deletePasswordRecovery(PasswordRecovery passwordRecovery);
+        
 }

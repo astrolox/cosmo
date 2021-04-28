@@ -75,13 +75,6 @@ public interface User extends AuditableObject{
     public static final String ACTIVATED_URL_STRING = "activated";
     public static final String LOCKED_URL_STRING = "locked";
     
-    /**
-     */
-    public static final int PASSWORD_LEN_MIN = 5;
-    /**
-     */
-    public static final int PASSWORD_LEN_MAX = 16;
-    
     /*
      * I'm not sure about putting this enum here, but it seems weird in other
      * places too. Since sort information is already here, in the *_SORT_STRING
@@ -241,10 +234,6 @@ public interface User extends AuditableObject{
 
     public void setLocked(Boolean locked);
 
-    /**
-     */
-    public void validateRawPassword();
-
     public Set<Preference> getPreferences();
 
     public void addPreference(Preference preference);
@@ -253,50 +242,10 @@ public interface User extends AuditableObject{
 
     public void removePreference(String key);
 
-    public void removePreference(Preference preference);
-
-    public Set<CollectionSubscription> getCollectionSubscriptions();
-
-    public void addSubscription(CollectionSubscription subscription);
-
-    /**
-     * Get the CollectionSubscription with the specified displayName
-     * @param displayname display name of subscription to return
-     * @return subscription with specified display name
-     */
-    public CollectionSubscription getSubscription(String displayname);
-
-    /**
-     * Get the CollectionSubscription with the specified collectionUid 
-     * and ticketKey
-     * @param collectionUid collection uid of subscription to return
-     * @param ticketKey ticketKey of subscription to return
-     * @return subscription with specified collectionUid and ticketKey
-     */
-    public CollectionSubscription getSubscription(String collectionUid,
-            String ticketKey);
-
-    /**
-     * Remove the CollectionSubscription with the specifed collectionUid and ticketKey
-     * @param collectionUid collection uid of subscription to remove
-     * @param ticketKey ticketKey of subscription to remove
-     */
-    public void removeSubscription(String collectionUid, String ticketKey);
-
-    /**
-     * Remove the CollectionSubscription with the specifed displayName
-     * @param name display name of the subscription to remove
-     */
-    public void removeSubscription(String displayName);
-
-    /** */
-    public void removeSubscription(CollectionSubscription sub);
-
-    /**
-     * Return true if this user is subscribed to <code>collection</code>
-     */
-    public boolean isSubscribedTo(CollectionItem collection);
+    public void removePreference(Preference preference);    
 
     public String calculateEntityTag();
+    
+    public Set<CollectionSubscription> getSubscriptions();
 
 }

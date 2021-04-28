@@ -19,24 +19,12 @@ import java.io.FileInputStream;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 
 import org.junit.Assert;
-import net.fortuna.ical4j.data.CalendarBuilder;
-import net.fortuna.ical4j.model.Calendar;
-import net.fortuna.ical4j.model.Component;
-import net.fortuna.ical4j.model.ComponentList;
-import net.fortuna.ical4j.model.component.VEvent;
-import net.fortuna.ical4j.model.property.DtEnd;
-import net.fortuna.ical4j.model.property.DtStart;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.unitedinternet.cosmo.TestHelper;
-import org.unitedinternet.cosmo.dao.mock.MockCalendarDao;
 import org.unitedinternet.cosmo.dao.mock.MockContentDao;
 import org.unitedinternet.cosmo.dao.mock.MockDaoStorage;
 import org.unitedinternet.cosmo.model.CollectionItem;
@@ -55,6 +43,14 @@ import org.unitedinternet.cosmo.model.mock.MockEventStamp;
 import org.unitedinternet.cosmo.model.mock.MockNoteItem;
 import org.unitedinternet.cosmo.service.lock.SingleVMLockManager;
 
+import net.fortuna.ical4j.data.CalendarBuilder;
+import net.fortuna.ical4j.model.Calendar;
+import net.fortuna.ical4j.model.Component;
+import net.fortuna.ical4j.model.ComponentList;
+import net.fortuna.ical4j.model.component.VEvent;
+import net.fortuna.ical4j.model.property.DtEnd;
+import net.fortuna.ical4j.model.property.DtStart;
+
 /**
  * Test Case for <code>StandardContentService</code> which uses mock
  * data access objects.
@@ -63,11 +59,9 @@ import org.unitedinternet.cosmo.service.lock.SingleVMLockManager;
  * @see MockContentDao
  */
 public class StandardContentServiceTest {
-    @SuppressWarnings("unused")
-    private static final Log LOG = LogFactory.getLog(StandardContentServiceTest.class);
 
     private StandardContentService service;
-    private MockCalendarDao calendarDao;
+    
     private MockContentDao contentDao;
     private MockDaoStorage storage;
     private SingleVMLockManager lockManager;
@@ -82,15 +76,10 @@ public class StandardContentServiceTest {
     @Before
     public void setUp() throws Exception {
         testHelper = new TestHelper();
-        storage = new MockDaoStorage();
-        calendarDao = new MockCalendarDao(storage);
+        storage = new MockDaoStorage();        
         contentDao = new MockContentDao(storage);
-        service = new StandardContentService();
         lockManager = new SingleVMLockManager();
-        service.setContentDao(contentDao);
-        service.setLockManager(lockManager);
-        service.setTriageStatusQueryProcessor(new StandardTriageStatusQueryProcessor());
-        service.init();
+        service = new StandardContentService(contentDao, lockManager, new StandardTriageStatusQueryProcessor());                
     }
 
     /**
@@ -276,7 +265,7 @@ public class StandardContentServiceTest {
         
         masterEvent.addModification(overridenComponent);
         
-        service.updateContentItems(Collections.singleton(createParent()), Collections.<ContentItem>singleton(masterEvent));
+        service.updateContentItems(createParent(), Collections.<ContentItem>singleton(masterEvent));
     }
     
     @Test(expected=IllegalArgumentException.class)
@@ -486,7 +475,7 @@ public class StandardContentServiceTest {
         EntityConverter converter = new EntityConverter(testHelper.getEntityFactory());
         Set<ContentItem> toUpdate = new HashSet<ContentItem>();
         toUpdate.addAll(converter.convertEventCalendar(masterNote, calendar));
-        service.updateContentItems(masterNote.getParents(), toUpdate);
+        service.updateContentItems(masterNote.getParents().iterator().next(), toUpdate);
         
         Calendar masterCal = eventStamp.getEventCalendar();
         VEvent masterEvent = eventStamp.getMasterEvent();
@@ -519,7 +508,7 @@ public class StandardContentServiceTest {
         // now update
         calendar = getCalendar("event_with_exceptions2.ics"); 
         toUpdate.addAll(converter.convertEventCalendar(masterNote, calendar));
-        service.updateContentItems(masterNote.getParents(), toUpdate);
+        service.updateContentItems(masterNote.getParents().iterator().next(), toUpdate);
         
         fullCal = converter.convertNote(masterNote);
         
@@ -538,22 +527,6 @@ public class StandardContentServiceTest {
         Assert.assertNull(getEvent("20060107T140000", fullCal));
         Assert.assertNotNull(getEvent("20060108T140000", fullCal));
         Assert.assertNotNull(getEvent("20060109T140000", fullCal));
-    }
-    
-    
-    /**
-     * Tests null content dao.
-     * @throws Exception - if something is wrong this exception is thrown.
-     */
-    @Test
-    public void testNullContentDao() throws Exception {
-        service.setContentDao(null);
-        try {
-            service.init();
-            Assert.fail("Should not be able to initialize service without contentDao");
-        } catch (IllegalStateException e) {
-            // expected
-        }
     }
     
     /**
@@ -606,10 +579,8 @@ public class StandardContentServiceTest {
      * @return The event.
      */
     private VEvent getEvent(String recurrenceId, Calendar calendar) {
-        ComponentList events = calendar.getComponents().getComponents(Component.VEVENT);
-        for(@SuppressWarnings("unchecked")
-        Iterator<VEvent> it = events.iterator(); it.hasNext();) {
-            VEvent event = it.next();
+        ComponentList<VEvent> events = calendar.getComponents().getComponents(Component.VEVENT);
+        for(VEvent event : events) {            
             if(event.getRecurrenceId()!=null && event.getRecurrenceId().getDate().toString().equals(recurrenceId))
                 return event;
         }

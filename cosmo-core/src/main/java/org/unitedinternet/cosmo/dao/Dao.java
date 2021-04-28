@@ -20,15 +20,5 @@ package org.unitedinternet.cosmo.dao;
  */
 public interface Dao {
 
-    /**
-     * Initializes the DAO, sanity checking required properties
-     * and defaulting optional properties.
-     */
-    public void init();
-
-    /**
-     * Readies the DAO for garbage collection, shutting down any
-     * resources used.
-     */
-    public void destroy();
+    
 }
